@@ -24,7 +24,7 @@ interface SpendingChartsProps {
   currencyFormatter: (value: number) => string;
 }
 
-const COLORS = ["#7c8cff", "#8de4d5", "#ffc6aa"];
+const COLORS = ["#4f46e5", "#10b981", "#f43f5e"]; // Indigo-600, Emerald-500, Rose-500
 
 export function SpendingCharts({ monthlySeries, categoryPie, trend, currencyFormatter }: SpendingChartsProps) {
   return (
@@ -34,13 +34,16 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend, currencyForm
         <ResponsiveContainer width="100%" height="85%">
           <BarChart data={monthlySeries}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="month" />
-            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} />
-            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
-            <Legend />
-            <Bar dataKey="daily_spending" fill="#7c8cff" />
-            <Bar dataKey="monthly_needs" fill="#8de4d5" />
-            <Bar dataKey="monthly_wants" fill="#ffc6aa" />
+            <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickMargin={8} />
+            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} stroke="#94a3b8" fontSize={12} tickMargin={8} />
+            <Tooltip 
+              formatter={(value) => currencyFormatter(Number(value))}
+              contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }} 
+            />
+            <Legend wrapperStyle={{ paddingTop: '10px' }} />
+            <Bar dataKey="daily_spending" fill="#4f46e5" radius={[4, 4, 0, 0]} name="Daily Spending" />
+            <Bar dataKey="monthly_needs" fill="#10b981" radius={[4, 4, 0, 0]} name="Monthly Needs" />
+            <Bar dataKey="monthly_wants" fill="#f43f5e" radius={[4, 4, 0, 0]} name="Monthly Wants" />
           </BarChart>
         </ResponsiveContainer>
       </section>
@@ -54,7 +57,10 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend, currencyForm
                 <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
+            <Tooltip 
+              formatter={(value) => currencyFormatter(Number(value))} 
+              contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }} 
+            />
           </PieChart>
         </ResponsiveContainer>
       </section>
@@ -64,10 +70,13 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend, currencyForm
         <ResponsiveContainer width="100%" height="85%">
           <LineChart data={trend}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="label" />
-            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} />
-            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
-            <Line dataKey="total" stroke="#7c8cff" strokeWidth={3} dot={false} />
+            <XAxis dataKey="label" stroke="#94a3b8" fontSize={12} tickMargin={8} />
+            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} stroke="#94a3b8" fontSize={12} tickMargin={8} />
+            <Tooltip 
+              formatter={(value) => currencyFormatter(Number(value))} 
+              contentStyle={{ borderRadius: '0.75rem', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)' }} 
+            />
+            <Line dataKey="total" stroke="#4f46e5" strokeWidth={3} dot={{ r: 4, fill: "#4f46e5", strokeWidth: 2, stroke: "#fff" }} activeDot={{ r: 6 }} />
           </LineChart>
         </ResponsiveContainer>
       </section>
