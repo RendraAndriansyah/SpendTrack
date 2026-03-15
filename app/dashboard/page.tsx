@@ -1,151 +1,40 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Icon as IconifyIcon } from "@iconify/react";
 import { SummaryCards } from "@/components/summary-cards";
-import { getAvailableYearMonths, getComparisons, getDashboardTotals, getSpendingByYearMonth } from "@/lib/db/repositories/transactions";
+import { DailyDetailDialog } from "@/components/daily-detail-dialog";
+import { CategoryDetailDialog } from "@/components/category-detail-dialog";
+import { useDashboard } from "@/lib/hooks/useDashboard";
 import { formatCurrencyIDR } from "@/lib/analytics/format";
-import type { ComparisonResult, DashboardTotals, Transaction } from "@/lib/types";
-
-const emptyTotals: DashboardTotals = {
-  grandTotal: 0,
-  byCategory: {
-    daily_spending: 0,
-    monthly_needs: 0,
-    monthly_wants: 0,
-  },
-};
-
-const emptyComparison: ComparisonResult = { current: 0, previous: 0, delta: 0 };
 
 export default function DashboardPage() {
-  const [totals, setTotals] = useState<DashboardTotals>(emptyTotals);
-  const [weekComparison, setWeekComparison] = useState<ComparisonResult>(emptyComparison);
-  const [monthComparison, setMonthComparison] = useState<ComparisonResult>(emptyComparison);
-  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
-  const [selectedMonth, setSelectedMonth] = useState("");
-  const [monthEntries, setMonthEntries] = useState<Transaction[]>([]);
-  const [monthTotal, setMonthTotal] = useState(0);
-  const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
+  const {
+    totals,
+    weekComparison,
+    monthComparison,
+    availableMonths,
+    selectedMonth,
+    setSelectedMonth,
+    monthTotal,
+    monthEntries,
+    monthlyNeedsEntries,
+    monthlyWantsEntries,
+    monthlyNeedsTotal,
+    monthlyWantsTotal,
+    sortedNeedsEntries,
+    sortedWantsEntries,
+    monthlyBreakdown,
+    expandedWeekKey,
+    setExpandedWeekKey,
+  } = useDashboard();
+
   const [categoryDialog, setCategoryDialog] = useState<"needs" | "wants" | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [isDayDialogOpen, setIsDayDialogOpen] = useState(false);
 
-  const refresh = useCallback(async () => {
-    const [newTotals, compare] = await Promise.all([getDashboardTotals(), getComparisons()]);
-
-    setTotals(newTotals);
-    setWeekComparison(compare.week);
-    setMonthComparison(compare.month);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-  }, [refresh]);
-
-  const refreshMonths = useCallback(async () => {
-    const months = await getAvailableYearMonths();
-    setAvailableMonths(months);
-    setSelectedMonth((current) => {
-      if (current && months.includes(current)) {
-        return current;
-      }
-      return months[0] ?? "";
-    });
-  }, []);
-
-  useEffect(() => {
-    refreshMonths();
-  }, [refreshMonths]);
-
-  const refreshSelectedMonth = useCallback(async () => {
-    if (!selectedMonth) {
-      setMonthEntries([]);
-      setMonthTotal(0);
-      setExpandedWeekKey(null);
-      setCategoryDialog(null);
-      setSelectedDay("");
-      setIsDayDialogOpen(false);
-      return;
-    }
-
-    const monthData = await getSpendingByYearMonth(selectedMonth);
-    setMonthEntries(monthData.entries);
-    setMonthTotal(monthData.total);
-    setExpandedWeekKey(null);
-    setCategoryDialog(null);
-    setSelectedDay("");
-    setIsDayDialogOpen(false);
-  }, [selectedMonth]);
-
-  useEffect(() => {
-    refreshSelectedMonth();
-  }, [refreshSelectedMonth]);
-
-  const dailySpendingEntries = useMemo(() => monthEntries.filter((entry) => entry.category === "daily_spending"), [monthEntries]);
-  const monthlyNeedsEntries = useMemo(() => monthEntries.filter((entry) => entry.category === "monthly_needs"), [monthEntries]);
-  const monthlyWantsEntries = useMemo(() => monthEntries.filter((entry) => entry.category === "monthly_wants"), [monthEntries]);
-
-  const monthlyNeedsTotal = useMemo(() => monthlyNeedsEntries.reduce((sum, entry) => sum + entry.amount, 0), [monthlyNeedsEntries]);
-  const monthlyWantsTotal = useMemo(() => monthlyWantsEntries.reduce((sum, entry) => sum + entry.amount, 0), [monthlyWantsEntries]);
-
-  const sortedNeedsEntries = useMemo(
-    () => [...monthlyNeedsEntries].sort((a, b) => b.localDate.localeCompare(a.localDate) || b.createdAt.localeCompare(a.createdAt)),
-    [monthlyNeedsEntries],
-  );
-  const sortedWantsEntries = useMemo(
-    () => [...monthlyWantsEntries].sort((a, b) => b.localDate.localeCompare(a.localDate) || b.createdAt.localeCompare(a.createdAt)),
-    [monthlyWantsEntries],
-  );
-
-  const monthlyBreakdown = useMemo(() => {
-    const sorted = [...dailySpendingEntries].sort((a, b) => a.localDate.localeCompare(b.localDate));
-    const weekMap = new Map<
-      string,
-      { weekKey: string; total: number; days: Map<string, { date: string; total: number; entries: Transaction[] }> }
-    >();
-
-    for (const entry of sorted) {
-      const weekKey = `${entry.isoYear}-W${String(entry.isoWeek).padStart(2, "0")}`;
-      if (!weekMap.has(weekKey)) {
-        weekMap.set(weekKey, {
-          weekKey,
-          total: 0,
-          days: new Map(),
-        });
-      }
-
-      const week = weekMap.get(weekKey)!;
-      week.total += entry.amount;
-
-      if (!week.days.has(entry.localDate)) {
-        week.days.set(entry.localDate, { date: entry.localDate, total: 0, entries: [] });
-      }
-
-      const day = week.days.get(entry.localDate)!;
-      day.total += entry.amount;
-      day.entries.push(entry);
-    }
-
-    const weeks = [...weekMap.values()]
-      .map((week) => ({
-        weekKey: week.weekKey,
-        total: week.total,
-        days: [...week.days.values()].sort((a, b) => a.date.localeCompare(b.date)),
-      }))
-      .sort((a, b) => a.weekKey.localeCompare(b.weekKey));
-
-    return weeks.map((week, index) => ({
-      ...week,
-      monthWeek: index + 1,
-    }));
-  }, [dailySpendingEntries]);
-
   const selectedDayData = useMemo(() => {
-    if (!selectedDay) {
-      return null;
-    }
-
+    if (!selectedDay) return null;
     for (const week of monthlyBreakdown) {
       const day = week.days.find((item) => item.date === selectedDay);
       if (day) {
@@ -156,7 +45,6 @@ export default function DashboardPage() {
         };
       }
     }
-
     return null;
   }, [monthlyBreakdown, selectedDay]);
 
@@ -168,232 +56,165 @@ export default function DashboardPage() {
   const selectedDayIndex = useMemo(() => monthDays.findIndex((day) => day === selectedDay), [monthDays, selectedDay]);
 
   const goToPreviousDay = () => {
-    if (selectedDayIndex <= 0) {
-      return;
-    }
-    setSelectedDay(monthDays[selectedDayIndex - 1] ?? selectedDay);
+    if (selectedDayIndex > 0) setSelectedDay(monthDays[selectedDayIndex - 1] ?? selectedDay);
   };
 
   const goToNextDay = () => {
-    if (selectedDayIndex < 0 || selectedDayIndex >= monthDays.length - 1) {
-      return;
-    }
-    setSelectedDay(monthDays[selectedDayIndex + 1] ?? selectedDay);
+    if (selectedDayIndex >= 0 && selectedDayIndex < monthDays.length - 1) setSelectedDay(monthDays[selectedDayIndex + 1] ?? selectedDay);
   };
 
   return (
-    <div className="space-y-4">
-      <header className="card">
-        <h1 className="flex items-center gap-2 text-xl font-bold">
-          <IconifyIcon icon="fluent-color:bar-chart-24" className="h-5 w-5" />
+    <div className="space-y-4 md:space-y-6">
+      <header className="card p-5 md:p-6 bg-gradient-to-br from-white to-slate-50 border-0 ring-1 ring-slate-100 shadow-sm">
+        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <IconifyIcon icon="fluent:data-bar-vertical-24-filled" className="h-6 w-6" />
+          </div>
           Dashboard
         </h1>
-        <p className="text-sm text-slate-500">Offline-first spending overview</p>
+        <p className="mt-2 text-sm text-slate-500 font-medium">Offline-first spending overview</p>
       </header>
 
       <SummaryCards totals={totals} week={weekComparison} month={monthComparison} formatCurrency={formatCurrencyIDR} />
 
-      <section className="card space-y-3">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <section className="card space-y-5 p-5 md:p-6 shadow-sm border-0 ring-1 ring-slate-100">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-slate-100 pb-5">
           <div>
-            <h2 className="text-base font-semibold">Spending by Month</h2>
-            <p className="text-xs text-slate-500">Choose month to view monthly spending detail.</p>
+            <h2 className="text-xl font-bold text-slate-800">Spending by Month</h2>
+            <p className="text-sm text-slate-500 mt-1">Choose a month to view detailed breakdown.</p>
           </div>
           <label className="text-sm">
-            <span className="mb-1 block text-xs text-slate-500">Month</span>
+            <span className="mb-1 block text-xs font-semibold text-slate-500 uppercase tracking-wider">Select Month</span>
             <select
-              className="input"
+              className="input pr-8 w-44 font-medium text-slate-700 bg-white"
               value={selectedMonth}
               onChange={(event) => setSelectedMonth(event.target.value)}
               disabled={availableMonths.length === 0}>
               {availableMonths.length === 0 ? <option value="">No month data</option> : null}
               {availableMonths.map((month) => (
-                <option key={month} value={month}>
-                  {month}
-                </option>
+                <option key={month} value={month}>{month}</option>
               ))}
             </select>
           </label>
         </div>
 
-        <div className="rounded-xl bg-slate-50 p-3">
-          <p className="text-xs text-slate-500">Total Spending ({selectedMonth || "-"})</p>
-          <p className="text-xl font-bold">{formatCurrencyIDR(monthTotal)}</p>
+        <div className="rounded-2xl bg-gradient-to-br from-indigo-50 to-indigo-100/50 p-5 mt-2 ring-1 ring-indigo-100">
+          <p className="text-sm font-semibold text-indigo-600 uppercase tracking-widest">Total Spending ({selectedMonth || "-"})</p>
+          <p className="mt-2 text-3xl font-extrabold tracking-tight text-slate-900">{formatCurrencyIDR(monthTotal)}</p>
         </div>
 
         {monthEntries.length === 0 ? (
-          <p className="text-sm text-slate-500">No entries found for this month.</p>
+          <div className="flex flex-col items-center justify-center py-12 px-4 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+            <IconifyIcon icon="fluent:calendar-empty-24-regular" className="h-12 w-12 text-slate-300 mb-3" />
+            <p className="text-slate-500 font-medium text-center">No entries found for this month.</p>
+          </div>
         ) : (
-          <div className="space-y-3">
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
-              <div className="rounded-xl border border-mint/70 bg-mint/20 p-3">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between text-left"
-                  onClick={() => setCategoryDialog("needs")}>
-                  <div>
-                    <p className="text-sm font-semibold">Monthly Needs</p>
-                    <p className="text-lg font-bold">{formatCurrencyIDR(monthlyNeedsTotal)}</p>
-                    <p className="text-xs text-slate-600">{monthlyNeedsEntries.length} entries</p>
-                  </div>
-                  <IconifyIcon icon="mdi:open-in-new" className="h-5 w-5 text-slate-500" />
-                </button>
-              </div>
-              <div className="rounded-xl border border-lavender/70 bg-lavender/25 p-3">
-                <button
-                  type="button"
-                  className="flex w-full items-center justify-between text-left"
-                  onClick={() => setCategoryDialog("wants")}>
-                  <div>
-                    <p className="text-sm font-semibold">Monthly Wants</p>
-                    <p className="text-lg font-bold">{formatCurrencyIDR(monthlyWantsTotal)}</p>
-                    <p className="text-xs text-slate-600">{monthlyWantsEntries.length} entries</p>
-                  </div>
-                  <IconifyIcon icon="mdi:open-in-new" className="h-5 w-5 text-slate-500" />
-                </button>
-              </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                onClick={() => setCategoryDialog("needs")}>
+                <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-emerald-100 flex items-center justify-center transition-transform group-hover:scale-110">
+                  <IconifyIcon icon="fluent:home-24-filled" className="h-4 w-4 text-emerald-600" />
+                </div>
+                <p className="text-sm font-bold text-emerald-700 uppercase tracking-wider">Monthly Needs</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(monthlyNeedsTotal)}</p>
+                <p className="mt-1 text-sm font-medium text-emerald-600/80">{monthlyNeedsEntries.length} entries</p>
+                <div className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-600 group-hover:text-emerald-700">
+                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                </div>
+              </button>
+
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-2xl border border-rose-100 bg-gradient-to-br from-rose-50 to-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                onClick={() => setCategoryDialog("wants")}>
+                <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-rose-100 flex items-center justify-center transition-transform group-hover:scale-110">
+                  <IconifyIcon icon="fluent:sparkle-24-filled" className="h-4 w-4 text-rose-600" />
+                </div>
+                <p className="text-sm font-bold text-rose-700 uppercase tracking-wider">Monthly Wants</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(monthlyWantsTotal)}</p>
+                <p className="mt-1 text-sm font-medium text-rose-600/80">{monthlyWantsEntries.length} entries</p>
+                <div className="mt-3 inline-flex items-center text-xs font-semibold text-rose-600 group-hover:text-rose-700">
+                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                </div>
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 gap-2 lg:grid-cols-2 xl:grid-cols-3">
+            <h3 className="text-lg font-bold text-slate-800 pt-2 border-slate-100">Weekly Breakdown</h3>
+            
+            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
               {monthlyBreakdown.map((week) => {
                 const isExpanded = expandedWeekKey === week.weekKey;
 
                 return (
-                  <div key={week.weekKey} className="rounded-xl border border-lavender/70 bg-slate-50 p-3">
+                  <div key={week.weekKey} className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden transition-all duration-300">
                     <button
                       type="button"
-                      className="flex w-full items-center justify-between text-left"
+                      className={`flex w-full items-center justify-between p-4 focus:outline-none transition-colors ${isExpanded ? "bg-slate-50" : "hover:bg-slate-50"}`}
                       onClick={() => setExpandedWeekKey((current) => (current === week.weekKey ? null : week.weekKey))}>
-                      <div>
-                        <p className="text-sm font-semibold">Week {week.monthWeek}</p>
-                        <p className="text-xs text-slate-500">{week.weekKey}</p>
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-slate-800">Week {week.monthWeek}</p>
+                        <p className="text-xs font-medium text-slate-500 mt-0.5 font-mono">{week.weekKey}</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <p className="text-sm font-semibold">{formatCurrencyIDR(week.total)}</p>
-                        <IconifyIcon icon={isExpanded ? "mdi:chevron-up" : "mdi:chevron-down"} className="h-5 w-5 text-slate-500" />
+                      <div className="flex items-center gap-4">
+                        <p className="text-sm font-bold text-accent">{formatCurrencyIDR(week.total)}</p>
+                        <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 transition-transform duration-300 ${isExpanded ? "rotate-180 bg-accent text-white" : "text-slate-500"}`}>
+                          <IconifyIcon icon="fluent:chevron-down-20-regular" />
+                        </div>
                       </div>
                     </button>
 
-                    {isExpanded ? (
-                      <div className="mt-3 space-y-2">
+                    {isExpanded && (
+                      <div className="border-t border-slate-100 bg-slate-50/50 p-2.5 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
                         {week.days.map((day) => (
                           <button
                             key={day.date}
                             type="button"
-                            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition ${
-                              selectedDay === day.date ? "bg-accent/20" : "bg-white"
+                            className={`group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition-all ${
+                              selectedDay === day.date 
+                                ? "bg-white shadow-sm ring-1 ring-accent/20 border-transparent" 
+                                : "bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200/60"
                             }`}
                             onClick={() => {
                               setSelectedDay(day.date);
                               setIsDayDialogOpen(true);
                             }}>
-                            <span className="font-medium">{day.date}</span>
-                            <span className="font-semibold">{formatCurrencyIDR(day.total)}</span>
+                            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{day.date}</span>
+                            <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900">{formatCurrencyIDR(day.total)}</span>
                           </button>
                         ))}
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 );
               })}
             </div>
-
-            {selectedDayData ? (
-              <p className="text-sm text-slate-500">Click a day to open detail dialog.</p>
-            ) : (
-              <p className="text-sm text-slate-500">Select a day to see detail.</p>
+            {!selectedDayData && (
+              <p className="text-xs font-medium text-slate-400 text-center py-2">Select a weekly day to see detailed breakdown.</p>
             )}
           </div>
         )}
       </section>
 
-      {isDayDialogOpen && selectedDayData ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-soft">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-semibold">Daily Detail ({selectedDayData.date})</p>
-                <p className="text-xs text-slate-500">Total: {formatCurrencyIDR(selectedDayData.total)}</p>
-              </div>
-              <button
-                type="button"
-                className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600"
-                onClick={() => setIsDayDialogOpen(false)}>
-                Close
-              </button>
-            </div>
+      <DailyDetailDialog
+        isOpen={isDayDialogOpen}
+        onClose={() => setIsDayDialogOpen(false)}
+        selectedDayData={selectedDayData}
+        onPrevDay={goToPreviousDay}
+        onNextDay={goToNextDay}
+        canGoPrev={selectedDayIndex > 0}
+        canGoNext={selectedDayIndex < monthDays.length - 1}
+        totalDays={monthDays.length}
+      />
 
-            <div className="mb-3 flex items-center justify-between gap-2">
-              <button
-                type="button"
-                className="btn-secondary inline-flex items-center gap-1 px-3 py-1 text-xs"
-                onClick={goToPreviousDay}
-                disabled={selectedDayIndex <= 0}>
-                <IconifyIcon icon="mdi:chevron-left" className="h-4 w-4" />
-                Prev
-              </button>
-              <button
-                type="button"
-                className="btn-secondary inline-flex items-center gap-1 px-3 py-1 text-xs"
-                onClick={goToNextDay}
-                disabled={selectedDayIndex < 0 || selectedDayIndex >= monthDays.length - 1}>
-                Next
-                <IconifyIcon icon="mdi:chevron-right" className="h-4 w-4" />
-              </button>
-            </div>
-
-            <ul className="max-h-[60vh] space-y-2 overflow-auto">
-              {selectedDayData.entries.map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <div>
-                    <p className="font-medium">{entry.description}</p>
-                    <p className="text-xs text-slate-500">{entry.category}</p>
-                  </div>
-                  <p className="font-semibold">{formatCurrencyIDR(entry.amount)}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      ) : null}
-
-      {categoryDialog ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-soft">
-            <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
-                <p className="text-base font-semibold">{categoryDialog === "needs" ? "Monthly Needs Detail" : "Monthly Wants Detail"}</p>
-                <p className="text-xs text-slate-500">{categoryDialog === "needs" ? selectedMonth : selectedMonth}</p>
-              </div>
-              <button
-                type="button"
-                className="rounded-lg bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600"
-                onClick={() => setCategoryDialog(null)}>
-                Close
-              </button>
-            </div>
-
-            {categoryDialog === "needs" && sortedNeedsEntries.length === 0 ? (
-              <p className="text-sm text-slate-500">No monthly needs entries.</p>
-            ) : null}
-            {categoryDialog === "wants" && sortedWantsEntries.length === 0 ? (
-              <p className="text-sm text-slate-500">No monthly wants entries.</p>
-            ) : null}
-
-            <ul className="max-h-[60vh] space-y-2 overflow-auto">
-              {(categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries).map((entry) => (
-                <li key={entry.id} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-                  <div>
-                    <p className="font-medium">{entry.description}</p>
-                    <p className="text-xs text-slate-500">{entry.localDate}</p>
-                  </div>
-                  <p className="font-semibold">{formatCurrencyIDR(entry.amount)}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      ) : null}
+      <CategoryDetailDialog
+        type={categoryDialog}
+        onClose={() => setCategoryDialog(null)}
+        selectedMonth={selectedMonth}
+        entries={categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries}
+      />
     </div>
   );
 }

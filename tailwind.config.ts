@@ -5,19 +5,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        surface: "#fff9fd",
+        surface: "#f4f4f5", // zinc-100
         card: "#ffffff",
-        text: "#1f2937",
-        accent: "#7c8cff",
-        mint: "#8de4d5",
-        peach: "#ffc6aa",
-        lavender: "#d8c9ff",
+        text: "#18181b", // zinc-900
+        accent: "#4f46e5", // indigo-600
+        mint: "#10b981", // emerald-500
+        peach: "#f43f5e", // rose-500
+        lavender: "#e0e7ff", // indigo-100
       },
       boxShadow: {
-        soft: "0 8px 30px rgba(124, 140, 255, 0.12)",
+        soft: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)",
       },
       borderRadius: {
-        soft: "1.25rem",
+        soft: "1rem", // slightly tighter than 1.25rem for a sharper look
       },
     },
   },

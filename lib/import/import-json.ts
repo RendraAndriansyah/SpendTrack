@@ -61,7 +61,7 @@ const addRow = (
 ) => {
   const parsedDate = toValidDate(date);
   const parsedAmount = toAmount(amount);
-  if (!parsedDate || parsedAmount === null) {
+  if (!parsedDate || parsedAmount === null || parsedAmount === 0) {
     return;
   }
 

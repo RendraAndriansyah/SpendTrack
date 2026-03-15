@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { Icon as IconifyIcon } from "@iconify/react";
 
 const links = [
-  { href: "/", label: "Input", icon: "fluent-color:edit-24" },
-  { href: "/dashboard", label: "Dashboard", icon: "fluent-color:bar-chart-24" },
-  { href: "/analytics", label: "Analytics", icon: "fluent-color:line-chart-24" },
-  { href: "/settings/data", label: "Data", icon: "fluent-color:database-24" },
+  { href: "/", label: "Input", icon: "fluent:edit-24-filled" },
+  { href: "/dashboard", label: "Dashboard", icon: "fluent:data-bar-vertical-24-filled" },
+  { href: "/analytics", label: "Analytics", icon: "fluent:data-line-24-filled" },
+  { href: "/settings/data", label: "Data", icon: "fluent:database-24-filled" },
 ];
 
 export function AppNav() {

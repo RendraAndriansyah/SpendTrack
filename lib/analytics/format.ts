@@ -5,3 +5,7 @@ export const formatCurrencyIDR = (value: number) => {
     maximumFractionDigits: 0,
   }).format(value);
 };
+
+export const formatCurrencyIDRComma = (value: number) => {
+  return `Rp ${Math.round(value).toLocaleString("en-US")}`;
+};

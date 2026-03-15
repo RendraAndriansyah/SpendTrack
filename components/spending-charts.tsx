@@ -21,11 +21,12 @@ interface SpendingChartsProps {
   monthlySeries: Array<{ month: string } & Record<ExpenseCategory, number>>;
   categoryPie: Array<{ name: string; value: number }>;
   trend: Array<{ label: string; total: number }>;
+  currencyFormatter: (value: number) => string;
 }
 
 const COLORS = ["#7c8cff", "#8de4d5", "#ffc6aa"];
 
-export function SpendingCharts({ monthlySeries, categoryPie, trend }: SpendingChartsProps) {
+export function SpendingCharts({ monthlySeries, categoryPie, trend, currencyFormatter }: SpendingChartsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <section className="card h-72">
@@ -34,8 +35,8 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend }: SpendingCh
           <BarChart data={monthlySeries}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="month" />
-            <YAxis />
-            <Tooltip />
+            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} />
+            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
             <Legend />
             <Bar dataKey="daily_spending" fill="#7c8cff" />
             <Bar dataKey="monthly_needs" fill="#8de4d5" />
@@ -53,7 +54,7 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend }: SpendingCh
                 <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
               ))}
             </Pie>
-            <Tooltip />
+            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
           </PieChart>
         </ResponsiveContainer>
       </section>
@@ -64,8 +65,8 @@ export function SpendingCharts({ monthlySeries, categoryPie, trend }: SpendingCh
           <LineChart data={trend}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="label" />
-            <YAxis />
-            <Tooltip />
+            <YAxis tickFormatter={(value) => currencyFormatter(Number(value))} />
+            <Tooltip formatter={(value) => currencyFormatter(Number(value))} />
             <Line dataKey="total" stroke="#7c8cff" strokeWidth={3} dot={false} />
           </LineChart>
         </ResponsiveContainer>

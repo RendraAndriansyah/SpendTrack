@@ -110,7 +110,7 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
       </motion.label>
       <motion.button disabled={saving} className="btn w-full" type="submit" whileTap={{ scale: 0.98 }}>
         <span className="inline-flex items-center justify-center gap-2">
-          {saving ? <IconifyIcon icon="fluent-color:arrow-sync-circle-24" className="h-4 w-4 animate-spin" /> : null}
+          {saving ? <IconifyIcon icon="fluent:arrow-sync-circle-24-filled" className="h-4 w-4 animate-spin" /> : null}
           {saving ? "Saving..." : "Save entry"}
         </span>
       </motion.button>
@@ -122,7 +122,7 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}>
-            <IconifyIcon icon="fluent-color:error-circle-24" className="h-4 w-4" />
+            <IconifyIcon icon="fluent:error-circle-24-filled" className="h-4 w-4" />
             {error}
           </motion.p>
         ) : null}
@@ -133,7 +133,7 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}>
-            <IconifyIcon icon="fluent-color:checkmark-circle-24" className="h-4 w-4" />
+            <IconifyIcon icon="fluent:checkmark-circle-24-filled" className="h-4 w-4" />
             {message}
           </motion.p>
         ) : null}

@@ -187,6 +187,44 @@ export async function replaceTransactions(rows: ImportTransactionInput[]): Promi
   return { imported: normalizedRows.length };
 }
 
+export async function replaceTransactionsForMonth(yearMonth: string, rows: ImportTransactionInput[]): Promise<{ imported: number }> {
+  const scopedRows = rows.filter((row) => row.date.slice(0, 7) === yearMonth);
+
+  if (scopedRows.length === 0) {
+    await db.transaction("rw", db.transactions, db.dailyRollups, db.periodRollups, async () => {
+      const existing = await db.transactions.where("yearMonth").equals(yearMonth).toArray();
+      for (const row of existing) {
+        await db.transactions.delete(row.id);
+      }
+      await rebuildRollups();
+    });
+
+    return { imported: 0 };
+  }
+
+  const normalizedRows = scopedRows.map((row) =>
+    normalizeTransaction({
+      ...row,
+      entryType: row.entryType ?? "manual",
+    }),
+  );
+
+  await db.transaction("rw", db.transactions, db.dailyRollups, db.periodRollups, async () => {
+    const existing = await db.transactions.where("yearMonth").equals(yearMonth).toArray();
+    for (const row of existing) {
+      await db.transactions.delete(row.id);
+    }
+
+    for (const row of normalizedRows) {
+      await db.transactions.add(row);
+    }
+
+    await rebuildRollups();
+  });
+
+  return { imported: normalizedRows.length };
+}
+
 export async function getTransactionsByCategory(category: ExpenseCategory, limit = 20): Promise<Transaction[]> {
   const rows = await db.transactions.where("category").equals(category).toArray();
   return rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
@@ -372,7 +410,7 @@ export async function getRecentTransactions(limit = 10): Promise<Transaction[]> 
 export async function getDailySpendingByDate(localDate: string): Promise<{ date: string; total: number; entries: Transaction[] }> {
   const rows = await db.transactions.where("[category+localDate]").equals(["daily_spending", localDate]).toArray();
 
-  const entries = rows.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const entries = rows.filter((row) => row.amount !== 0).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const total = entries.reduce((sum, item) => sum + item.amount, 0);
 
   return {
@@ -390,7 +428,9 @@ export async function getAvailableYearMonths(): Promise<string[]> {
 
 export async function getSpendingByYearMonth(yearMonth: string): Promise<{ yearMonth: string; total: number; entries: Transaction[] }> {
   const rows = await db.transactions.toArray();
-  const entries = rows.filter((row) => row.yearMonth === yearMonth).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  const entries = rows
+    .filter((row) => row.yearMonth === yearMonth && row.amount !== 0)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const total = entries.reduce((sum, item) => sum + item.amount, 0);
 
   return {
@@ -414,4 +454,68 @@ export async function getDailyTotalsByCategory(): Promise<Array<{ name: string; 
     name: category,
     value: totals.byCategory[category],
   }));
+}
+
+export async function getTransactionDateBounds(): Promise<{ from: string; to: string } | null> {
+  const rows = await db.transactions.toArray();
+  const validDates = rows.map((row) => row.localDate).filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
+
+  if (validDates.length === 0) {
+    return null;
+  }
+
+  const sorted = validDates.sort((a, b) => a.localeCompare(b));
+  return {
+    from: sorted[0] ?? "",
+    to: sorted[sorted.length - 1] ?? "",
+  };
+}
+
+export async function getAnalyticsByDateRange(
+  fromDate: string,
+  toDate: string,
+): Promise<{
+  monthlySeries: Array<{ month: string } & Record<ExpenseCategory, number>>;
+  categoryPie: Array<{ name: string; value: number }>;
+  trend: Array<{ label: string; total: number }>;
+}> {
+  const rows = await db.transactions.toArray();
+  const filtered = rows.filter((row) => row.amount !== 0 && row.localDate >= fromDate && row.localDate <= toDate);
+
+  const monthMap = new Map<string, { month: string } & Record<ExpenseCategory, number>>();
+  for (const row of filtered) {
+    if (!monthMap.has(row.yearMonth)) {
+      monthMap.set(row.yearMonth, {
+        month: row.yearMonth,
+        daily_spending: 0,
+        monthly_needs: 0,
+        monthly_wants: 0,
+      });
+    }
+    monthMap.get(row.yearMonth)![row.category] += row.amount;
+  }
+
+  const totalsByCategory: Record<ExpenseCategory, number> = {
+    daily_spending: 0,
+    monthly_needs: 0,
+    monthly_wants: 0,
+  };
+
+  for (const row of filtered) {
+    totalsByCategory[row.category] += row.amount;
+  }
+
+  const trendMap = new Map<string, number>();
+  for (const row of filtered) {
+    if (row.category !== "daily_spending") {
+      continue;
+    }
+    trendMap.set(row.localDate, (trendMap.get(row.localDate) ?? 0) + row.amount);
+  }
+
+  return {
+    monthlySeries: [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
+    categoryPie: CATEGORIES.map((category) => ({ name: category, value: totalsByCategory[category] })),
+    trend: [...trendMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, total]) => ({ label: date.slice(5), total })),
+  };
 }
