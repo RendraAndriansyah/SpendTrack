@@ -27,8 +27,8 @@ interface LegacyEntry {
 
 interface LegacySampleShape {
   weekly_logs?: LegacyWeekLog[];
-  needs_monthly?: LegacyEntry[];
-  wants_monthly?: LegacyEntry[];
+  needs?: LegacyEntry[];
+  wants?: LegacyEntry[];
 }
 
 const isObject = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
@@ -162,8 +162,8 @@ function parseLegacySample(source: unknown): ImportTransactionInput[] {
   const legacy = source as LegacySampleShape;
 
   parseLegacyWeeklyLogs(legacy.weekly_logs, rows);
-  parseLegacyMonthlyEntries(legacy.needs_monthly, "monthly_needs", rows);
-  parseLegacyMonthlyEntries(legacy.wants_monthly, "monthly_wants", rows);
+  parseLegacyMonthlyEntries(legacy.needs, "monthly_needs", rows);
+  parseLegacyMonthlyEntries(legacy.wants, "monthly_wants", rows);
 
   return rows;
 }

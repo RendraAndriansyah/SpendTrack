@@ -134,7 +134,6 @@ export default function AnalyticsPage() {
           transition={{ delay: 0.1 }}
         >
           <SpendingCharts
-            monthlySeries={mainData.monthlySeries}
             categoryPie={mainData.categoryPie}
             trend={mainData.trend}
             trendNeeds={mainData.trendNeeds}

@@ -1,24 +1,17 @@
 "use client";
 
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   Line,
   LineChart,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
-  Cell,
 } from "recharts";
-import type { ExpenseCategory } from "@/lib/types";
 
 interface SpendingChartsProps {
-  monthlySeries: Array<{ month: string } & Record<ExpenseCategory, number>>;
   categoryPie: Array<{ name: string; value: number }>;
   trend: Array<{ label: string; total: number }>;
   trendNeeds: Array<{ label: string; total: number }>;
@@ -33,32 +26,39 @@ interface SpendingChartsProps {
   currencyFormatter: (value: number) => string;
 }
 
-const COLORS = ["#4f46e5", "#10b981", "#f43f5e"]; // Indigo-600, Emerald-500, Rose-500
-const COLORS_CMP = ["#a5b4fc", "#6ee7b7", "#fda4af"]; // muted versions for comparison
+
 
 const CHART_STYLE = { borderRadius: "0.75rem", border: "none", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)" };
 
-// Merge two trend arrays on `label`, producing { label, current, compare }
+// Merge two trend arrays by day-of-month ("DD") so that different months align properly
 function mergeTrends(
   current: Array<{ label: string; total: number }>,
   compare: Array<{ label: string; total: number }>,
 ) {
+  // label is "MM-DD" — extract the day part for alignment
+  const dayOf = (label: string) => {
+    const parts = label.split("-");
+    return parts.length >= 2 ? parts[parts.length - 1]! : label;
+  };
+
   const map = new Map<string, { label: string; current: number; compare: number }>();
-  for (const d of current) map.set(d.label, { label: d.label, current: d.total, compare: 0 });
+  for (const d of current) {
+    const day = dayOf(d.label);
+    map.set(day, { label: day, current: d.total, compare: 0 });
+  }
   for (const d of compare) {
-    const existing = map.get(d.label);
+    const day = dayOf(d.label);
+    const existing = map.get(day);
     if (existing) {
       existing.compare = d.total;
     } else {
-      map.set(d.label, { label: d.label, current: 0, compare: d.total });
+      map.set(day, { label: day, current: 0, compare: d.total });
     }
   }
   return [...map.values()].sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function sumPie(pie: Array<{ name: string; value: number }>): number {
-  return pie.reduce((s, d) => s + d.value, 0);
-}
+
 
 interface DeltaBadgeProps { a: number; b: number; fmt: (n: number) => string }
 function DeltaBadge({ a, b, fmt }: DeltaBadgeProps) {
@@ -73,7 +73,6 @@ function DeltaBadge({ a, b, fmt }: DeltaBadgeProps) {
 }
 
 export function SpendingCharts({
-  monthlySeries,
   categoryPie,
   trend,
   trendNeeds,
@@ -90,8 +89,8 @@ export function SpendingCharts({
   const trendNeedsMerged = mergeTrends(trendNeeds, trendNeedsCmp);
   const trendWantsMerged = mergeTrends(trendWants, trendWantsCmp);
 
-  const mainTotal = sumPie(categoryPie);
-  const cmpTotal = sumPie(categoryPieCmp);
+  const mainTotal = categoryPie.reduce((s, d) => s + d.value, 0);
+  const cmpTotal = categoryPieCmp.reduce((s, d) => s + d.value, 0);
 
   const CATEGORY_LABELS: Record<string, string> = {
     daily_spending: "Daily Spending",
@@ -154,65 +153,10 @@ export function SpendingCharts({
       </section>
 
       {/* ── Charts Grid ─────────────────────────────────────────── */}
-      <div className="grid gap-4 md:grid-cols-2">
-        {/* Month by Category Bar Chart */}
-        <section className="card h-72 border-0 ring-1 ring-slate-100 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">Month by Category</h2>
-          <ResponsiveContainer width="100%" height="85%">
-            <BarChart data={monthlySeries}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickMargin={8} />
-              <YAxis tickFormatter={(v) => currencyFormatter(Number(v))} stroke="#94a3b8" fontSize={12} tickMargin={8} />
-              <Tooltip formatter={(v) => currencyFormatter(Number(v))} contentStyle={CHART_STYLE} />
-              <Legend wrapperStyle={{ paddingTop: "10px" }} />
-              <Bar dataKey="daily_spending" fill="#4f46e5" radius={[4, 4, 0, 0]} name="Daily Spending" />
-              <Bar dataKey="monthly_needs" fill="#10b981" radius={[4, 4, 0, 0]} name="Monthly Needs" />
-              <Bar dataKey="monthly_wants" fill="#f43f5e" radius={[4, 4, 0, 0]} name="Monthly Wants" />
-            </BarChart>
-          </ResponsiveContainer>
-        </section>
-
-        {/* Category Split — dual pies */}
-        <section className="card border-0 ring-1 ring-slate-100 shadow-sm">
-          <h2 className="mb-2 text-sm font-semibold text-slate-700">Category Split</h2>
-          <div className="grid grid-cols-2 gap-2 h-60">
-            <div>
-              <p className="text-center text-xs font-semibold text-accent mb-1">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-accent mr-1 align-middle" />
-                {selectedLabel}
-              </p>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryPie} dataKey="value" nameKey="name" innerRadius={40} outerRadius={65}>
-                    {categoryPie.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => currencyFormatter(Number(v))} contentStyle={CHART_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div>
-              <p className="text-center text-xs font-semibold text-slate-400 mb-1">
-                <span className="inline-block h-1.5 w-1.5 rounded-full bg-slate-400 mr-1 align-middle" />
-                {compareLabel}
-              </p>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoryPieCmp} dataKey="value" nameKey="name" innerRadius={40} outerRadius={65}>
-                    {categoryPieCmp.map((entry, index) => (
-                      <Cell key={entry.name} fill={COLORS_CMP[index % COLORS_CMP.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(v) => currencyFormatter(Number(v))} contentStyle={CHART_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </section>
+      <div className="grid gap-4">
 
         {/* Daily Spending Trend — overlaid */}
-        <section className="card h-72 md:col-span-2 border-0 ring-1 ring-slate-100 shadow-sm">
+        <section className="card h-72 border-0 ring-1 ring-slate-100 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">Daily Spending Trend</h2>
           <ResponsiveContainer width="100%" height="85%">
             <LineChart data={trendMerged}>
@@ -228,7 +172,7 @@ export function SpendingCharts({
         </section>
 
         {/* Monthly Needs Trend — overlaid */}
-        <section className="card h-72 md:col-span-2 border-0 ring-1 ring-slate-100 shadow-sm">
+        <section className="card h-72 border-0 ring-1 ring-slate-100 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">Monthly Needs Trend</h2>
           <ResponsiveContainer width="100%" height="85%">
             <LineChart data={trendNeedsMerged}>
@@ -244,7 +188,7 @@ export function SpendingCharts({
         </section>
 
         {/* Monthly Wants Trend — overlaid */}
-        <section className="card h-72 md:col-span-2 border-0 ring-1 ring-slate-100 shadow-sm">
+        <section className="card h-72 border-0 ring-1 ring-slate-100 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-slate-700">Monthly Wants Trend</h2>
           <ResponsiveContainer width="100%" height="85%">
             <LineChart data={trendWantsMerged}>
