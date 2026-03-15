@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-surface text-text antialiased;
+  font-family:
+    "Plus Jakarta Sans",
+    system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
+}
+
+main {
+  @apply mx-auto max-w-6xl p-3 pb-32 sm:p-4 sm:pb-36 md:p-6 md:pb-32;
+}
+
+.card {
+  @apply rounded-soft bg-card p-3 shadow-soft sm:p-4;
+}
+
+.input {
+  @apply w-full rounded-xl border border-lavender/60 bg-white px-3 py-2 text-sm text-text outline-none transition focus:border-accent;
+}
+
+.btn {
+  @apply rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white transition hover:opacity-90;
+}
+
+.btn-secondary {
+  @apply rounded-xl bg-mint px-4 py-2 text-sm font-semibold text-text transition hover:opacity-90;
+}
