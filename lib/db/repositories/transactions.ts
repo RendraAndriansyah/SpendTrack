@@ -478,6 +478,8 @@ export async function getAnalyticsByDateRange(
   monthlySeries: Array<{ month: string } & Record<ExpenseCategory, number>>;
   categoryPie: Array<{ name: string; value: number }>;
   trend: Array<{ label: string; total: number }>;
+  trendNeeds: Array<{ label: string; total: number }>;
+  trendWants: Array<{ label: string; total: number }>;
 }> {
   const rows = await db.transactions.toArray();
   const filtered = rows.filter((row) => row.amount !== 0 && row.localDate >= fromDate && row.localDate <= toDate);
@@ -505,17 +507,25 @@ export async function getAnalyticsByDateRange(
     totalsByCategory[row.category] += row.amount;
   }
 
-  const trendMap = new Map<string, number>();
+  const trendMapDaily = new Map<string, number>();
+  const trendMapNeeds = new Map<string, number>();
+  const trendMapWants = new Map<string, number>();
+  
   for (const row of filtered) {
-    if (row.category !== "daily_spending") {
-      continue;
+    if (row.category === "daily_spending") {
+      trendMapDaily.set(row.localDate, (trendMapDaily.get(row.localDate) ?? 0) + row.amount);
+    } else if (row.category === "monthly_needs") {
+      trendMapNeeds.set(row.localDate, (trendMapNeeds.get(row.localDate) ?? 0) + row.amount);
+    } else if (row.category === "monthly_wants") {
+      trendMapWants.set(row.localDate, (trendMapWants.get(row.localDate) ?? 0) + row.amount);
     }
-    trendMap.set(row.localDate, (trendMap.get(row.localDate) ?? 0) + row.amount);
   }
 
   return {
     monthlySeries: [...monthMap.values()].sort((a, b) => a.month.localeCompare(b.month)),
     categoryPie: CATEGORIES.map((category) => ({ name: category, value: totalsByCategory[category] })),
-    trend: [...trendMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, total]) => ({ label: date.slice(5), total })),
+    trend: [...trendMapDaily.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, total]) => ({ label: date.slice(5), total })),
+    trendNeeds: [...trendMapNeeds.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, total]) => ({ label: date.slice(5), total })),
+    trendWants: [...trendMapWants.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([date, total]) => ({ label: date.slice(5), total })),
   };
 }
