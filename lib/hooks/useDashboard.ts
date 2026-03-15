@@ -1,6 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { getAvailableYearMonths, getComparisons, getDashboardTotals, getSpendingByYearMonth } from "@/lib/db/repositories/transactions";
-import type { ComparisonResult, DashboardTotals, Transaction } from "@/lib/types";
+import { getAvailableYearMonths, getComparisons, getDashboardTotals, getMonthlyCategorySeries, getSpendingByYearMonth } from "@/lib/db/repositories/transactions";
+import type { ComparisonResult, DashboardTotals, ExpenseCategory, Transaction } from "@/lib/types";
+
+export interface MonthTotal {
+  month: string;
+  daily_spending: number;
+  monthly_needs: number;
+  monthly_wants: number;
+  grandTotal: number;
+}
 
 const emptyTotals: DashboardTotals = {
   grandTotal: 0,
@@ -22,6 +30,7 @@ export function useDashboard() {
   const [monthEntries, setMonthEntries] = useState<Transaction[]>([]);
   const [monthTotal, setMonthTotal] = useState(0);
   const [expandedWeekKey, setExpandedWeekKey] = useState<string | null>(null);
+  const [allMonthTotals, setAllMonthTotals] = useState<MonthTotal[]>([]);
 
   const refresh = useCallback(async () => {
     const [newTotals, compare] = await Promise.all([getDashboardTotals(), getComparisons()]);
@@ -31,7 +40,10 @@ export function useDashboard() {
   }, []);
 
   const refreshMonths = useCallback(async () => {
-    const months = await getAvailableYearMonths();
+    const [months, series] = await Promise.all([
+      getAvailableYearMonths(),
+      getMonthlyCategorySeries(999),
+    ]);
     setAvailableMonths(months);
     setSelectedMonth((current) => {
       if (current && months.includes(current)) {
@@ -39,6 +51,12 @@ export function useDashboard() {
       }
       return months[0] ?? "";
     });
+    setAllMonthTotals(
+      series.map((s) => ({
+        ...s,
+        grandTotal: s.daily_spending + s.monthly_needs + s.monthly_wants,
+      })),
+    );
   }, []);
 
   const refreshSelectedMonth = useCallback(async () => {
@@ -144,5 +162,6 @@ export function useDashboard() {
     monthlyBreakdown,
     expandedWeekKey,
     setExpandedWeekKey,
+    allMonthTotals,
   };
 }

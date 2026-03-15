@@ -2,11 +2,18 @@
 
 import { useMemo, useState } from "react";
 import { Icon as IconifyIcon } from "@iconify/react";
+import { motion } from "framer-motion";
 import { SummaryCards } from "@/components/summary-cards";
 import { DailyDetailDialog } from "@/components/daily-detail-dialog";
 import { CategoryDetailDialog } from "@/components/category-detail-dialog";
 import { useDashboard } from "@/lib/hooks/useDashboard";
 import { formatCurrencyIDR } from "@/lib/analytics/format";
+
+function formatMonthLabel(yearMonth: string): string {
+  const [y, m] = yearMonth.split("-").map(Number);
+  const date = new Date(y!, (m ?? 1) - 1, 1);
+  return date.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+}
 
 export default function DashboardPage() {
   const {
@@ -27,6 +34,7 @@ export default function DashboardPage() {
     monthlyBreakdown,
     expandedWeekKey,
     setExpandedWeekKey,
+    allMonthTotals,
   } = useDashboard();
 
   const [categoryDialog, setCategoryDialog] = useState<"needs" | "wants" | null>(null);
@@ -63,6 +71,12 @@ export default function DashboardPage() {
     if (selectedDayIndex >= 0 && selectedDayIndex < monthDays.length - 1) setSelectedDay(monthDays[selectedDayIndex + 1] ?? selectedDay);
   };
 
+  // Sort month totals newest-first for the bottom cards
+  const sortedMonthTotals = useMemo(
+    () => [...allMonthTotals].sort((a, b) => b.month.localeCompare(a.month)),
+    [allMonthTotals],
+  );
+
   return (
     <div className="space-y-4 md:space-y-6">
       <header className="card p-5 md:p-6 bg-gradient-to-br from-white to-slate-50 border-0 ring-1 ring-slate-100 shadow-sm">
@@ -75,8 +89,7 @@ export default function DashboardPage() {
         <p className="mt-2 text-sm text-slate-500 font-medium">Offline-first spending overview</p>
       </header>
 
-      <SummaryCards totals={totals} week={weekComparison} month={monthComparison} formatCurrency={formatCurrencyIDR} />
-
+      {/* ── Spending by Month ─── Top Section ─────────────────── */}
       <section className="card space-y-5 p-5 md:p-6 shadow-sm border-0 ring-1 ring-slate-100">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between border-b border-slate-100 pb-5">
           <div>
@@ -197,6 +210,92 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
+
+      <SummaryCards totals={totals} week={weekComparison} month={monthComparison} formatCurrency={formatCurrencyIDR} />
+
+      {/* ── Monthly Totals ─── Bottom Cards ───────────────────── */}
+      {sortedMonthTotals.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-2.5 px-1">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent/10 text-accent">
+              <IconifyIcon icon="fluent:calendar-month-24-filled" className="h-5 w-5" />
+            </div>
+            <h2 className="text-lg font-bold text-slate-800">Monthly Totals</h2>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {sortedMonthTotals.map((mt, i) => {
+              const isSelected = mt.month === selectedMonth;
+              return (
+                <motion.button
+                  key={mt.month}
+                  type="button"
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={`group relative text-left rounded-2xl p-5 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5 overflow-hidden ${
+                    isSelected
+                      ? "bg-gradient-to-br from-accent/5 to-accent/10 ring-2 ring-accent/30"
+                      : "bg-white ring-1 ring-slate-100 hover:ring-slate-200"
+                  }`}
+                  onClick={() => setSelectedMonth(mt.month)}
+                >
+                  {/* Accent bar */}
+                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-colors ${isSelected ? "bg-accent" : "bg-slate-200 group-hover:bg-accent/40"}`} />
+
+                  <div className="flex items-center justify-between mb-3">
+                    <p className={`text-sm font-bold tracking-wide ${isSelected ? "text-accent" : "text-slate-600"}`}>
+                      {formatMonthLabel(mt.month)}
+                    </p>
+                    {isSelected && (
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-accent bg-accent/10 px-2 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
+
+                  <p className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">
+                    {formatCurrencyIDR(mt.grandTotal)}
+                  </p>
+
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        <span className="inline-block h-2 w-2 rounded-full bg-indigo-500" />
+                        Daily
+                      </span>
+                      <span className="font-semibold text-slate-700">{formatCurrencyIDR(mt.daily_spending)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
+                        Needs
+                      </span>
+                      <span className="font-semibold text-slate-700">{formatCurrencyIDR(mt.monthly_needs)}</span>
+                    </div>
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="flex items-center gap-1.5 text-slate-500">
+                        <span className="inline-block h-2 w-2 rounded-full bg-rose-500" />
+                        Wants
+                      </span>
+                      <span className="font-semibold text-slate-700">{formatCurrencyIDR(mt.monthly_wants)}</span>
+                    </div>
+                  </div>
+
+                  {/* Stacked bar indicator */}
+                  {mt.grandTotal > 0 && (
+                    <div className="mt-3 flex h-1.5 rounded-full overflow-hidden bg-slate-100">
+                      <div className="bg-indigo-500 transition-all" style={{ width: `${(mt.daily_spending / mt.grandTotal) * 100}%` }} />
+                      <div className="bg-emerald-500 transition-all" style={{ width: `${(mt.monthly_needs / mt.grandTotal) * 100}%` }} />
+                      <div className="bg-rose-500 transition-all" style={{ width: `${(mt.monthly_wants / mt.grandTotal) * 100}%` }} />
+                    </div>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <DailyDetailDialog
         isOpen={isDayDialogOpen}
