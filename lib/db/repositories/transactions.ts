@@ -289,7 +289,9 @@ export async function updateTransactionById(id: string, input: UpdateTransaction
 
   await db.transaction("rw", db.transactions, db.dailyRollups, db.periodRollups, async () => {
     await db.transactions.put(updated);
-    await rebuildRollups();
+    // Subtract old rollups, then add new ones (incremental — avoids full rebuild)
+    await applyRollupDelta(existing, -existing.amount, -1);
+    await applyRollupDelta(updated, updated.amount, 1);
   });
 
   return updated;

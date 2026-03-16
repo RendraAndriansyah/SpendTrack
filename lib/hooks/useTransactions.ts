@@ -48,13 +48,31 @@ export function useTransactions(initialCategory: ExpenseCategory, initialDate: s
   }, [refreshDaily]);
 
   const handleUpdate = async (id: string, updateData: UpdateTransactionInput) => {
+    // Optimistic update for instant UI feedback
+    setRows((current) =>
+      current.map((row) =>
+        row.id === id
+          ? {
+              ...row,
+              amount: updateData.amount ?? row.amount,
+              description: updateData.description ?? row.description,
+              localDate: updateData.date ?? row.localDate,
+              category: updateData.category ?? row.category,
+            }
+          : row,
+      ),
+    );
+
     try {
       await updateTransactionById(id, updateData);
       toast.success("Entry updated.");
-      await refreshAll();
+      // Background refresh to sync true state (non-blocking)
+      refreshAll();
       return true;
     } catch {
       toast.error("Failed to update entry.");
+      // Revert optimistic update on failure
+      await refreshAll();
       return false;
     }
   };
