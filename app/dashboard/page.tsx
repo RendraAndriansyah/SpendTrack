@@ -31,9 +31,6 @@ export default function DashboardPage() {
     monthlyWantsTotal,
     sortedNeedsEntries,
     sortedWantsEntries,
-    monthlyBreakdown,
-    expandedWeekKey,
-    setExpandedWeekKey,
     allMonthTotals,
   } = useDashboard();
 
@@ -41,25 +38,86 @@ export default function DashboardPage() {
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [isDayDialogOpen, setIsDayDialogOpen] = useState(false);
 
+  const calendarWeeks = useMemo(() => {
+    if (!selectedMonth) return [];
+    const [y, m] = selectedMonth.split("-").map(Number);
+    const firstDay = new Date(y!, (m ?? 1) - 1, 1);
+    const lastDay = new Date(y!, m ?? 1, 0);
+    
+    const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+    const startDate = new Date(y!, (m ?? 1) - 1, 1 - startOffset);
+    
+    const endOffset = lastDay.getDay() === 0 ? 0 : 7 - lastDay.getDay();
+    const endDate = new Date(y!, m ?? 1, endOffset);
+    endDate.setHours(23, 59, 59, 999);
+    
+    const weeks = [];
+    let currentDate = new Date(startDate);
+    let sanityLimit = 0;
+    
+    while (currentDate <= endDate && sanityLimit < 10) {
+      sanityLimit++;
+      const weekDays = [];
+      let weeklyTotal = 0;
+      
+      for (let i = 0; i < 7; i++) {
+        const yearStr = currentDate.getFullYear();
+        const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
+        const dayStr = String(currentDate.getDate()).padStart(2, "0");
+        const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
+        
+        const dayEntries = monthEntries.filter(
+          (e) => e.category === "daily_spending" && e.localDate === dateStr
+        );
+        const totalSpend = dayEntries.reduce((sum, e) => sum + e.amount, 0);
+        const entriesCount = dayEntries.length;
+        
+        weekDays.push({
+          date: dateStr,
+          dayOfMonth: currentDate.getDate(),
+          isCurrentMonth: currentDate.getMonth() === (m ?? 1) - 1,
+          entriesCount,
+          totalSpend,
+          dayEntries,
+        });
+        
+        if (currentDate.getMonth() === (m ?? 1) - 1) {
+          weeklyTotal += totalSpend;
+        }
+        
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      weeks.push({ days: weekDays, weeklyTotal });
+    }
+    return weeks;
+  }, [selectedMonth, monthEntries]);
+
   const selectedDayData = useMemo(() => {
     if (!selectedDay) return null;
-    for (const week of monthlyBreakdown) {
+    for (const week of calendarWeeks) {
       const day = week.days.find((item) => item.date === selectedDay);
-      if (day) {
+      if (day && day.dayEntries.length > 0) {
         return {
           date: day.date,
-          total: day.total,
-          entries: [...day.entries].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+          total: day.totalSpend,
+          entries: [...day.dayEntries].sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
         };
       }
     }
     return null;
-  }, [monthlyBreakdown, selectedDay]);
+  }, [calendarWeeks, selectedDay]);
 
   const monthDays = useMemo(() => {
-    const days = monthlyBreakdown.flatMap((week) => week.days.map((day) => day.date));
+    const days: string[] = [];
+    for (const week of calendarWeeks) {
+      for (const day of week.days) {
+        if (day.totalSpend > 0 && day.isCurrentMonth) {
+          days.push(day.date);
+        }
+      }
+    }
     return [...new Set(days)].sort((a, b) => a.localeCompare(b));
-  }, [monthlyBreakdown]);
+  }, [calendarWeeks]);
 
   const selectedDayIndex = useMemo(() => monthDays.findIndex((day) => day === selectedDay), [monthDays, selectedDay]);
 
@@ -155,57 +213,74 @@ export default function DashboardPage() {
               </button>
             </div>
 
-            <h3 className="text-lg font-bold text-slate-800 pt-2 border-slate-100">Weekly Breakdown</h3>
+            <h3 className="text-lg font-bold text-slate-800 pt-2 border-slate-100">Calendar Spend</h3>
             
-            <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-              {monthlyBreakdown.map((week) => {
-                const isExpanded = expandedWeekKey === week.weekKey;
-
-                return (
-                  <div key={week.weekKey} className="rounded-2xl border border-slate-100 bg-white shadow-sm overflow-hidden transition-all duration-300">
-                    <button
-                      type="button"
-                      className={`flex w-full items-center justify-between p-4 focus:outline-none transition-colors ${isExpanded ? "bg-slate-50" : "hover:bg-slate-50"}`}
-                      onClick={() => setExpandedWeekKey((current) => (current === week.weekKey ? null : week.weekKey))}>
-                      <div className="text-left">
-                        <p className="text-sm font-bold text-slate-800">Week {week.monthWeek}</p>
-                        <p className="text-xs font-medium text-slate-500 mt-0.5 font-mono">{week.weekKey}</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <p className="text-sm font-bold text-accent">{formatCurrencyIDR(week.total)}</p>
-                        <div className={`flex h-6 w-6 items-center justify-center rounded-full bg-slate-100 transition-transform duration-300 ${isExpanded ? "rotate-180 bg-accent text-white" : "text-slate-500"}`}>
-                          <IconifyIcon icon="fluent:chevron-down-20-regular" />
-                        </div>
-                      </div>
-                    </button>
-
-                    {isExpanded && (
-                      <div className="border-t border-slate-100 bg-slate-50/50 p-2.5 space-y-1.5 animate-in slide-in-from-top-2 duration-200">
-                        {week.days.map((day) => (
-                          <button
-                            key={day.date}
-                            type="button"
-                            className={`group flex w-full items-center justify-between rounded-xl px-4 py-3 text-left transition-all ${
-                              selectedDay === day.date 
-                                ? "bg-white shadow-sm ring-1 ring-accent/20 border-transparent" 
-                                : "bg-transparent hover:bg-white hover:shadow-sm border border-transparent hover:border-slate-200/60"
-                            }`}
-                            onClick={() => {
-                              setSelectedDay(day.date);
-                              setIsDayDialogOpen(true);
-                            }}>
-                            <span className="text-sm font-semibold text-slate-700 group-hover:text-slate-900">{day.date}</span>
-                            <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900">{formatCurrencyIDR(day.total)}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
+            <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+              <div className="grid grid-cols-8 border-b border-slate-200 bg-slate-50">
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"].map((day, idx) => (
+                  <div key={day} className={`p-1.5 md:p-2 text-center text-[10px] md:text-xs font-semibold text-slate-500 ${idx === 7 ? 'bg-slate-100/50 border-l border-slate-200' : ''}`}>
+                    {day}
                   </div>
-                );
-              })}
+                ))}
+              </div>
+              
+              <div className="flex flex-col bg-slate-200 gap-[1px]">
+                {calendarWeeks.map((week, wIdx) => (
+                  <div key={wIdx} className="grid grid-cols-8 gap-[1px]">
+                    {week.days.map((day) => {
+                      const isSelected = selectedDay === day.date;
+                      
+                      return (
+                        <button
+                          key={day.date}
+                          type="button"
+                          disabled={!day.isCurrentMonth || day.entriesCount === 0}
+                          onClick={() => {
+                            setSelectedDay(day.date);
+                            setIsDayDialogOpen(true);
+                          }}
+                          className={`
+                            relative flex flex-col p-1 md:p-1.5 lg:p-2 bg-white aspect-[4/5] sm:aspect-square md:aspect-auto md:min-h-[5.5rem] focus:outline-none transition-colors group
+                            ${!day.isCurrentMonth ? "text-slate-300 bg-slate-50/30" : "text-slate-700"}
+                            ${isSelected ? "ring-2 ring-inset ring-accent bg-accent/5 z-10" : ""}
+                            ${day.entriesCount > 0 && day.isCurrentMonth ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"}
+                          `}
+                        >
+                          <div className="flex justify-between items-start w-full">
+                            <span className={`text-[10px] md:text-xs lg:text-sm font-medium`}>
+                              {day.dayOfMonth}
+                            </span>
+                            {day.entriesCount > 0 && day.isCurrentMonth && (
+                              <span className="text-[9px] md:text-[10px] lg:text-xs font-semibold text-blue-500">
+                                {day.entriesCount}
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="mt-auto pt-0.5 md:pt-1 w-full text-left">
+                            {day.totalSpend > 0 && day.isCurrentMonth && (
+                              <span className="text-[8px] md:text-[10px] lg:text-xs font-medium text-emerald-600 block line-clamp-2 md:truncate break-words leading-tight">
+                                {formatCurrencyIDR(day.totalSpend)}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {/* Weekly Total Column */}
+                    <div className="p-1 md:p-1.5 lg:p-2 flex flex-col justify-center items-end bg-slate-50 overflow-hidden">
+                       {week.weeklyTotal > 0 && (
+                         <span className="text-[9px] md:text-[10px] lg:text-xs font-bold text-slate-600 block line-clamp-2 md:truncate break-words leading-tight w-full text-right" title={formatCurrencyIDR(week.weeklyTotal)}>
+                           {formatCurrencyIDR(week.weeklyTotal)}
+                         </span>
+                       )}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
             {!selectedDayData && (
-              <p className="text-xs font-medium text-slate-400 text-center py-2">Select a weekly day to see detailed breakdown.</p>
+              <p className="text-xs font-medium text-slate-400 text-center py-2">Select a calendar day to see detailed breakdown.</p>
             )}
           </div>
         )}
