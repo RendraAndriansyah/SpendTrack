@@ -25,16 +25,19 @@ export default function DashboardPage() {
     setSelectedMonth,
     monthTotal,
     monthEntries,
+    dailySpendingEntries,
     monthlyNeedsEntries,
     monthlyWantsEntries,
+    dailySpendingTotal,
     monthlyNeedsTotal,
     monthlyWantsTotal,
+    sortedDailyEntries,
     sortedNeedsEntries,
     sortedWantsEntries,
     allMonthTotals,
   } = useDashboard();
 
-  const [categoryDialog, setCategoryDialog] = useState<"needs" | "wants" | null>(null);
+  const [categoryDialog, setCategoryDialog] = useState<"daily_spending" | "needs" | "wants" | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [isDayDialogOpen, setIsDayDialogOpen] = useState(false);
 
@@ -181,7 +184,22 @@ export default function DashboardPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
+              <button
+                type="button"
+                className="group relative overflow-hidden rounded-2xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+                onClick={() => setCategoryDialog("daily_spending")}>
+                <div className="absolute top-4 right-4 h-8 w-8 rounded-full bg-indigo-100 flex items-center justify-center transition-transform group-hover:scale-110">
+                  <IconifyIcon icon="fluent:calendar-ltr-24-filled" className="h-4 w-4 text-indigo-600" />
+                </div>
+                <p className="text-sm font-bold text-indigo-700 uppercase tracking-wider">Monthly Daily</p>
+                <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(dailySpendingTotal)}</p>
+                <p className="mt-1 text-sm font-medium text-indigo-600/80">{dailySpendingEntries.length} entries</p>
+                <div className="mt-3 inline-flex items-center text-xs font-semibold text-indigo-600 group-hover:text-indigo-700">
+                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                </div>
+              </button>
+
               <button
                 type="button"
                 className="group relative overflow-hidden rounded-2xl border border-emerald-100 bg-gradient-to-br from-emerald-50 to-white p-5 text-left shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
@@ -387,7 +405,7 @@ export default function DashboardPage() {
         type={categoryDialog}
         onClose={() => setCategoryDialog(null)}
         selectedMonth={selectedMonth}
-        entries={categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries}
+        entries={categoryDialog === "daily_spending" ? sortedDailyEntries : categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries}
       />
     </div>
   );

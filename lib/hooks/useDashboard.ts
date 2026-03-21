@@ -89,9 +89,14 @@ export function useDashboard() {
   const monthlyNeedsEntries = useMemo(() => monthEntries.filter((entry) => entry.category === "monthly_needs"), [monthEntries]);
   const monthlyWantsEntries = useMemo(() => monthEntries.filter((entry) => entry.category === "monthly_wants"), [monthEntries]);
 
+  const dailySpendingTotal = useMemo(() => dailySpendingEntries.reduce((sum, entry) => sum + entry.amount, 0), [dailySpendingEntries]);
   const monthlyNeedsTotal = useMemo(() => monthlyNeedsEntries.reduce((sum, entry) => sum + entry.amount, 0), [monthlyNeedsEntries]);
   const monthlyWantsTotal = useMemo(() => monthlyWantsEntries.reduce((sum, entry) => sum + entry.amount, 0), [monthlyWantsEntries]);
 
+  const sortedDailyEntries = useMemo(
+    () => [...dailySpendingEntries].sort((a, b) => b.localDate.localeCompare(a.localDate) || b.createdAt.localeCompare(a.createdAt)),
+    [dailySpendingEntries],
+  );
   const sortedNeedsEntries = useMemo(
     () => [...monthlyNeedsEntries].sort((a, b) => b.localDate.localeCompare(a.localDate) || b.createdAt.localeCompare(a.createdAt)),
     [monthlyNeedsEntries],
@@ -153,10 +158,13 @@ export function useDashboard() {
     setSelectedMonth,
     monthTotal,
     monthEntries,
+    dailySpendingEntries,
     monthlyNeedsEntries,
     monthlyWantsEntries,
+    dailySpendingTotal,
     monthlyNeedsTotal,
     monthlyWantsTotal,
+    sortedDailyEntries,
     sortedNeedsEntries,
     sortedWantsEntries,
     monthlyBreakdown,

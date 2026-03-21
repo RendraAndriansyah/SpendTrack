@@ -3,7 +3,7 @@ import { formatCurrencyIDR } from "@/lib/analytics/format";
 import type { Transaction } from "@/lib/types";
 
 interface CategoryDetailDialogProps {
-  type: "needs" | "wants" | null;
+  type: "daily_spending" | "needs" | "wants" | null;
   onClose: () => void;
   selectedMonth: string;
   entries: Transaction[];
@@ -23,7 +23,7 @@ export function CategoryDetailDialog({
         <div className="mb-4 flex items-start justify-between gap-3 border-b border-slate-100 pb-4">
           <div>
             <p className="text-lg font-bold text-slate-800">
-              {type === "needs" ? "Monthly Needs Detail" : "Monthly Wants Detail"}
+              {type === "needs" ? "Monthly Needs Detail" : type === "wants" ? "Monthly Wants Detail" : "Monthly Daily Detail"}
             </p>
             <p className="text-sm font-medium text-slate-500 mt-0.5">Month: <span className="text-slate-700">{selectedMonth}</span></p>
           </div>
@@ -36,7 +36,7 @@ export function CategoryDetailDialog({
         </div>
 
         {entries.length === 0 ? (
-          <p className="text-sm text-slate-500 py-4 text-center">No {type} entries for this month.</p>
+          <p className="text-sm text-slate-500 py-4 text-center">No {type === "daily_spending" ? "daily spending" : type} entries for this month.</p>
         ) : (
           <ul className="max-h-[60vh] space-y-2 overflow-y-auto pr-1">
             {entries.map((entry) => (
