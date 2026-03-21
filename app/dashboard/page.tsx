@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Icon as IconifyIcon } from "@iconify/react";
 import { motion } from "framer-motion";
-import { SummaryCards } from "@/components/summary-cards";
 import { DailyDetailDialog } from "@/components/daily-detail-dialog";
 import { CategoryDetailDialog } from "@/components/category-detail-dialog";
 import { useDashboard } from "@/lib/hooks/useDashboard";
@@ -17,9 +16,6 @@ function formatMonthLabel(yearMonth: string): string {
 
 export default function DashboardPage() {
   const {
-    totals,
-    weekComparison,
-    monthComparison,
     availableMonths,
     selectedMonth,
     setSelectedMonth,
@@ -303,8 +299,6 @@ export default function DashboardPage() {
           </div>
         )}
       </section>
-
-      <SummaryCards totals={totals} week={weekComparison} month={monthComparison} formatCurrency={formatCurrencyIDR} />
 
       {/* ── Monthly Totals ─── Bottom Cards ───────────────────── */}
       {sortedMonthTotals.length > 0 && (
