@@ -54,6 +54,9 @@ export default function DashboardPage() {
     let currentDate = new Date(startDate);
     let sanityLimit = 0;
     
+    const todayDate = new Date();
+    const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
+    
     while (currentDate <= endDate && sanityLimit < 10) {
       sanityLimit++;
       const weekDays = [];
@@ -75,6 +78,7 @@ export default function DashboardPage() {
           date: dateStr,
           dayOfMonth: currentDate.getDate(),
           isCurrentMonth: currentDate.getMonth() === (m ?? 1) - 1,
+          isPastDay: dateStr <= todayStr,
           entriesCount,
           totalSpend,
           dayEntries,
@@ -231,7 +235,7 @@ export default function DashboardPage() {
             
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               <div className="grid grid-cols-8 border-b border-slate-200 bg-slate-50">
-                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total"].map((day, idx) => (
+                {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total Weekly"].map((day, idx) => (
                   <div key={day} className={`p-1.5 md:p-2 text-center text-[10px] md:text-xs font-semibold text-slate-500 ${idx === 7 ? 'bg-slate-100/50 border-l border-slate-200' : ''}`}>
                     {day}
                   </div>
@@ -264,16 +268,16 @@ export default function DashboardPage() {
                             <span className={`text-[10px] md:text-xs lg:text-sm font-medium`}>
                               {day.dayOfMonth}
                             </span>
-                            {day.entriesCount > 0 && day.isCurrentMonth && (
+                            {/* {day.entriesCount > 0 && day.isCurrentMonth && (
                               <span className="text-[9px] md:text-[10px] lg:text-xs font-semibold text-blue-500">
                                 {day.entriesCount}
                               </span>
-                            )}
+                            )} */}
                           </div>
                           
                           <div className="mt-auto pt-0.5 md:pt-1 w-full text-left">
-                            {day.totalSpend > 0 && day.isCurrentMonth && (
-                              <span className="text-[8px] md:text-[10px] lg:text-xs font-medium text-emerald-600 block line-clamp-2 md:truncate break-words leading-tight">
+                            {day.isCurrentMonth && (day.totalSpend > 0 || day.isPastDay) && (
+                              <span className={`text-[8px] md:text-[10px] lg:text-xs font-medium block line-clamp-2 md:truncate break-words leading-tight ${day.totalSpend > 0 ? "text-red-600" : "text-slate-400"}`}>
                                 {formatCurrencyIDR(day.totalSpend)}
                               </span>
                             )}
@@ -284,7 +288,7 @@ export default function DashboardPage() {
                     {/* Weekly Total Column */}
                     <div className="p-1 md:p-1.5 lg:p-2 flex flex-col justify-center items-end bg-slate-50 overflow-hidden">
                        {week.weeklyTotal > 0 && (
-                         <span className="text-[9px] md:text-[10px] lg:text-xs font-bold text-slate-600 block line-clamp-2 md:truncate break-words leading-tight w-full text-right" title={formatCurrencyIDR(week.weeklyTotal)}>
+                         <span className="text-[9px] md:text-[10px] lg:text-xs font-bold text-red-600 block line-clamp-2 md:truncate break-words leading-tight w-full text-right" title={formatCurrencyIDR(week.weeklyTotal)}>
                            {formatCurrencyIDR(week.weeklyTotal)}
                          </span>
                        )}
