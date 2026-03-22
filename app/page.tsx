@@ -89,31 +89,16 @@ export default function LandingInputPage() {
 
   return (
     <div className="space-y-4 md:space-y-6">
-      <header className="card p-5 md:p-6 bg-gradient-to-br from-white to-slate-50 border-0 shadow-sm ring-1 ring-slate-100">
-        <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-            <IconifyIcon icon="fluent:wallet-credit-card-24-filled" className="h-6 w-6" />
-          </div>
-          Quick Input
-        </h1>
-        <p className="mt-2 text-sm text-slate-500">Choose a spending type by sliding cards, then add your entry.</p>
-        <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Link href="/dashboard" className="btn-secondary group inline-flex w-full items-center justify-center text-sm py-2.5">
-            <span className="inline-flex items-center gap-2">
-              <IconifyIcon icon="fluent:data-bar-vertical-24-filled" className="h-4 w-4 transition-transform group-hover:scale-110" />
-              Open Dashboard
-            </span>
-          </Link>
-          <Link href="/analytics" className="btn-secondary group inline-flex w-full items-center justify-center text-sm py-2.5">
-            <span className="inline-flex items-center gap-2">
-              <IconifyIcon icon="fluent:data-line-24-filled" className="h-4 w-4 transition-transform group-hover:scale-110" />
-              View Analytics
-            </span>
-          </Link>
-        </div>
-      </header>
 
       <section className="card p-5 md:p-6 shadow-sm border-0 ring-1 ring-slate-100">
+        <div className="flex justify-center pb-4">
+          <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <IconifyIcon icon="fluent:wallet-credit-card-24-filled" className="h-6 w-6" />
+            </div>
+            Quick Input
+          </h1>
+        </div>
         <div className="flex items-center gap-3" onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
           <button
             type="button"
