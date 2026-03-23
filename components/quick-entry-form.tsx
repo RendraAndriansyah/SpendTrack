@@ -116,7 +116,7 @@ export function QuickEntryForm({ category, title, onCreated, theme }: QuickEntry
       </motion.label>
       <motion.button 
         disabled={saving} 
-        className={`btn w-full ${theme ? `${theme.accent} ${theme.hoverBg}` : "bg-accent hover:bg-indigo-700"}`} 
+        className={`btn w-full ${theme ? `${theme.accent} ${theme.hoverBg} border-0 shadow-md` : ""}`} 
         type="submit" 
         whileTap={{ scale: 0.98 }}>
         <span className="inline-flex items-center justify-center gap-2">

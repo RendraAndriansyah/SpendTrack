@@ -2,6 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  .card {
+    @apply rounded-soft border border-slate-200/60 bg-card p-4 shadow-soft transition-all duration-300 sm:p-5;
+  }
+
+  .input {
+    @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-text outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10;
+  }
+
+  .btn {
+    @apply rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .btn-secondary {
+    @apply rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-text shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
+  }
+}
+
 :root {
   color-scheme: light;
 }
@@ -19,20 +37,4 @@ body {
 
 main {
   @apply mx-auto max-w-6xl p-3 pb-32 sm:p-4 sm:pb-36 md:p-6 md:pb-32;
-}
-
-.card {
-  @apply rounded-soft border border-slate-200/60 bg-card p-4 shadow-soft transition-all duration-300 sm:p-5;
-}
-
-.input {
-  @apply w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2.5 text-sm text-text outline-none transition-all duration-200 placeholder:text-slate-400 focus:border-accent focus:bg-white focus:ring-4 focus:ring-accent/10;
-}
-
-.btn {
-  @apply rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
-}
-
-.btn-secondary {
-  @apply rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-text shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50 hover:shadow active:translate-y-0 disabled:pointer-events-none disabled:opacity-50;
 }

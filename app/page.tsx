@@ -36,9 +36,9 @@ const options: Array<{
       text: "text-indigo-700",
       bg: "bg-indigo-50/50",
       border: "border-indigo-100",
-      accent: "bg-indigo-600",
+      accent: "!bg-indigo-600",
       ring: "ring-indigo-600/10",
-      hoverBg: "hover:bg-indigo-700",
+      hoverBg: "!hover:bg-indigo-700",
       iconBg: "bg-indigo-100",
       iconColor: "text-indigo-600",
     }
@@ -52,9 +52,9 @@ const options: Array<{
       text: "text-emerald-700",
       bg: "bg-emerald-50/50",
       border: "border-emerald-100",
-      accent: "bg-emerald-600",
+      accent: "!bg-emerald-600",
       ring: "ring-emerald-600/10",
-      hoverBg: "hover:bg-emerald-700",
+      hoverBg: "!hover:bg-emerald-700",
       iconBg: "bg-emerald-100",
       iconColor: "text-emerald-600",
     }
@@ -68,9 +68,9 @@ const options: Array<{
       text: "text-rose-700",
       bg: "bg-rose-50/50",
       border: "border-rose-100",
-      accent: "bg-rose-600",
+      accent: "!bg-rose-600",
       ring: "ring-rose-600/10",
-      hoverBg: "hover:bg-rose-700",
+      hoverBg: "!hover:bg-rose-700",
       iconBg: "bg-rose-100",
       iconColor: "text-rose-600",
     }
@@ -178,7 +178,7 @@ export default function LandingInputPage() {
           </button>
         </div>
         <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-slate-400 md:hidden">
-          <IconifyIcon icon="fluent:hand-draw-24-regular" className="h-4 w-4" />
+          <IconifyIcon icon="fluent:hand-draw-24-regular" className={`h-4 w-4 ${active.theme.iconColor}`} />
           Swipe left/right to change category
         </p>
         <div className="mt-4 flex justify-center gap-2">
