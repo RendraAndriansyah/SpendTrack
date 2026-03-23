@@ -11,24 +11,69 @@ import { useTransactions } from "@/lib/hooks/useTransactions";
 import { toLocalDateString } from "@/lib/time/timezone";
 import type { ExpenseCategory } from "@/lib/types";
 
-const options: Array<{ category: ExpenseCategory; label: string; icon: string; subtitle: string }> = [
+const options: Array<{ 
+  category: ExpenseCategory; 
+  label: string; 
+  icon: string; 
+  subtitle: string;
+  theme: {
+    text: string;
+    bg: string;
+    border: string;
+    accent: string;
+    ring: string;
+    hoverBg: string;
+    iconBg: string;
+    iconColor: string;
+  }
+}> = [
   {
     category: "daily_spending",
     label: "Daily Spending",
     icon: "fluent:wallet-credit-card-24-filled",
     subtitle: "Food, transport, small daily costs",
-  },
-  {
-    category: "monthly_wants",
-    label: "Monthly Wants",
-    icon: "fluent:sparkle-24-filled",
-    subtitle: "Lifestyle and non-essential spending",
+    theme: {
+      text: "text-indigo-700",
+      bg: "bg-indigo-50/50",
+      border: "border-indigo-100",
+      accent: "bg-indigo-600",
+      ring: "ring-indigo-600/10",
+      hoverBg: "hover:bg-indigo-700",
+      iconBg: "bg-indigo-100",
+      iconColor: "text-indigo-600",
+    }
   },
   {
     category: "monthly_needs",
     label: "Monthly Needs",
     icon: "fluent:home-24-filled",
     subtitle: "Bills, obligations, and essentials",
+    theme: {
+      text: "text-emerald-700",
+      bg: "bg-emerald-50/50",
+      border: "border-emerald-100",
+      accent: "bg-emerald-600",
+      ring: "ring-emerald-600/10",
+      hoverBg: "hover:bg-emerald-700",
+      iconBg: "bg-emerald-100",
+      iconColor: "text-emerald-600",
+    }
+  },
+  {
+    category: "monthly_wants",
+    label: "Monthly Wants",
+    icon: "fluent:sparkle-24-filled",
+    subtitle: "Lifestyle and non-essential spending",
+    theme: {
+      text: "text-rose-700",
+      bg: "bg-rose-50/50",
+      border: "border-rose-100",
+      accent: "bg-rose-600",
+      ring: "ring-rose-600/10",
+      hoverBg: "hover:bg-rose-700",
+      iconBg: "bg-rose-100",
+      iconColor: "text-rose-600",
+    }
   },
 ];
 
@@ -90,11 +135,11 @@ export default function LandingInputPage() {
   return (
     <div className="space-y-4 md:space-y-6">
 
-      <section className="card p-5 md:p-6 shadow-sm border-0 ring-1 ring-slate-100">
+      <section className="card p-5 md:p-6 shadow-sm border-0 ring-1 ring-slate-100/80">
         <div className="flex justify-center pb-4">
           <h1 className="flex items-center gap-2.5 text-2xl font-bold tracking-tight text-slate-900">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10 text-accent">
-              <IconifyIcon icon="fluent:wallet-credit-card-24-filled" className="h-6 w-6" />
+            <div className={`flex h-10 w-10 items-center justify-center rounded-xl transition-colors duration-300 ${active.theme.iconBg} ${active.theme.iconColor}`}>
+              <IconifyIcon icon={active.icon} className="h-6 w-6" />
             </div>
             Quick Input
           </h1>
@@ -111,12 +156,12 @@ export default function LandingInputPage() {
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={active.category}
-                className="absolute inset-0 flex flex-col justify-center rounded-2xl border border-accent/20 bg-accent/5 p-4 md:p-5"
+                className={`absolute inset-0 flex flex-col justify-center rounded-2xl border transition-colors duration-300 p-4 md:p-5 ${active.theme.bg} ${active.theme.border}`}
                 initial={{ opacity: 0, x: 50 * direction, scale: 0.95 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: -50 * direction, scale: 0.95 }}
                 transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}>
-                <p className="flex items-center gap-2 text-lg font-bold text-slate-800">
+                <p className={`flex items-center gap-2 text-lg font-bold transition-colors duration-300 ${active.theme.text}`}>
                   <IconifyIcon icon={active.icon} className="h-5 w-5 drop-shadow-sm" />
                   {active.label}
                 </p>
@@ -147,7 +192,7 @@ export default function LandingInputPage() {
               }}
               aria-label={`Go to ${item.label}`}
               className={`h-2.5 rounded-full transition-all duration-300 ${
-                index === activeIndex ? "w-6 bg-accent" : "w-2.5 bg-slate-200 hover:bg-slate-300"
+                index === activeIndex ? `w-6 ${active.theme.accent}` : "w-2.5 bg-slate-200 hover:bg-slate-300"
               }`}
             />
           ))}
@@ -155,7 +200,7 @@ export default function LandingInputPage() {
       </section>
 
       <div className="py-2">
-        <QuickEntryForm key={active.category} category={active.category} title={`Add ${active.label}`} onCreated={refreshAll} />
+        <QuickEntryForm key={active.category} category={active.category} title={`Add ${active.label}`} onCreated={refreshAll} theme={active.theme} />
       </div>
 
       <DailySpending

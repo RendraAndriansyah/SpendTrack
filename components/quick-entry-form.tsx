@@ -12,9 +12,15 @@ interface QuickEntryFormProps {
   category: ExpenseCategory;
   title: string;
   onCreated?: () => Promise<void> | void;
+  theme?: {
+    accent: string;
+    hoverBg: string;
+    ring: string;
+    text: string;
+  };
 }
 
-export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormProps) {
+export function QuickEntryForm({ category, title, onCreated, theme }: QuickEntryFormProps) {
   const today = toLocalDateString(new Date());
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
@@ -78,11 +84,11 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2, ease: "easeOut" }}>
-      <h2 className="text-base font-semibold">{title}</h2>
+      <h2 className={`text-base font-semibold transition-colors duration-300 ${theme?.text || "text-slate-800"}`}>{title}</h2>
       <motion.label className="block text-sm">
         Description
         <input
-          className="input mt-1"
+          className={`input mt-1 ${theme ? `focus:border-${theme.accent.split("-")[1]}-500 focus:ring-${theme.accent.split("-")[1]}-500/10` : ""}`}
           type="text"
           value={description}
           onChange={(event) => setDescription(event.target.value)}
@@ -94,7 +100,7 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
       <motion.label className="block text-sm">
         Amount
         <input
-          className="input mt-1"
+          className={`input mt-1 ${theme ? `focus:border-${theme.accent.split("-")[1]}-500 focus:ring-${theme.accent.split("-")[1]}-500/10` : ""}`}
           type="text"
           inputMode="numeric"
           pattern="[0-9,]*"
@@ -106,9 +112,13 @@ export function QuickEntryForm({ category, title, onCreated }: QuickEntryFormPro
       </motion.label>
       <motion.label className="block text-sm">
         Date
-        <input className="input mt-1" type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+        <input className={`input mt-1 ${theme ? `focus:border-${theme.accent.split("-")[1]}-500 focus:ring-${theme.accent.split("-")[1]}-500/10` : ""}`} type="date" value={date} onChange={(event) => setDate(event.target.value)} />
       </motion.label>
-      <motion.button disabled={saving} className="btn w-full" type="submit" whileTap={{ scale: 0.98 }}>
+      <motion.button 
+        disabled={saving} 
+        className={`btn w-full ${theme ? `${theme.accent} ${theme.hoverBg}` : "bg-accent hover:bg-indigo-700"}`} 
+        type="submit" 
+        whileTap={{ scale: 0.98 }}>
         <span className="inline-flex items-center justify-center gap-2">
           {saving ? <IconifyIcon icon="fluent:arrow-sync-circle-24-filled" className="h-4 w-4 animate-spin" /> : null}
           {saving ? "Saving..." : "Save entry"}
