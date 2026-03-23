@@ -19,6 +19,9 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   title: "Spend Tracker",
   description: "Expense tracking application",
+  icons: {
+    icon: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
