@@ -48,38 +48,36 @@ export default function DashboardPage() {
     const [y, m] = selectedMonth.split("-").map(Number);
     const firstDay = new Date(y!, (m ?? 1) - 1, 1);
     const lastDay = new Date(y!, m ?? 1, 0);
-    
+
     const startOffset = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
     const startDate = new Date(y!, (m ?? 1) - 1, 1 - startOffset);
-    
+
     const endOffset = lastDay.getDay() === 0 ? 0 : 7 - lastDay.getDay();
     const endDate = new Date(y!, m ?? 1, endOffset);
     endDate.setHours(23, 59, 59, 999);
-    
+
     const weeks = [];
     let currentDate = new Date(startDate);
     let sanityLimit = 0;
-    
+
     const todayDate = new Date();
     const todayStr = `${todayDate.getFullYear()}-${String(todayDate.getMonth() + 1).padStart(2, "0")}-${String(todayDate.getDate()).padStart(2, "0")}`;
-    
+
     while (currentDate <= endDate && sanityLimit < 10) {
       sanityLimit++;
       const weekDays = [];
       let weeklyTotal = 0;
-      
+
       for (let i = 0; i < 7; i++) {
         const yearStr = currentDate.getFullYear();
         const monthStr = String(currentDate.getMonth() + 1).padStart(2, "0");
         const dayStr = String(currentDate.getDate()).padStart(2, "0");
         const dateStr = `${yearStr}-${monthStr}-${dayStr}`;
-        
-        const dayEntries = monthEntries.filter(
-          (e) => e.category === "daily_spending" && e.localDate === dateStr
-        );
+
+        const dayEntries = monthEntries.filter((e) => e.category === "daily_spending" && e.localDate === dateStr);
         const totalSpend = dayEntries.reduce((sum, e) => sum + e.amount, 0);
         const entriesCount = dayEntries.length;
-        
+
         weekDays.push({
           date: dateStr,
           dayOfMonth: currentDate.getDate(),
@@ -89,11 +87,11 @@ export default function DashboardPage() {
           totalSpend,
           dayEntries,
         });
-        
+
         if (currentDate.getMonth() === (m ?? 1) - 1) {
           weeklyTotal += totalSpend;
         }
-        
+
         currentDate.setDate(currentDate.getDate() + 1);
       }
       weeks.push({ days: weekDays, weeklyTotal });
@@ -139,10 +137,7 @@ export default function DashboardPage() {
   };
 
   // Sort month totals newest-first for the bottom cards
-  const sortedMonthTotals = useMemo(
-    () => [...allMonthTotals].sort((a, b) => b.month.localeCompare(a.month)),
-    [allMonthTotals],
-  );
+  const sortedMonthTotals = useMemo(() => [...allMonthTotals].sort((a, b) => b.month.localeCompare(a.month)), [allMonthTotals]);
 
   // Selection ranges and calculations
   const selectedRange = useMemo(() => {
@@ -155,13 +150,11 @@ export default function DashboardPage() {
   const rangeTotals = useMemo(() => {
     if (!selectedRange || selectedRange.start === selectedRange.end) return null;
 
-    const rangeEntries = monthEntries.filter(
-      (e) => e.localDate >= selectedRange.start && e.localDate <= selectedRange.end
-    );
+    const rangeEntries = monthEntries.filter((e) => e.localDate >= selectedRange.start && e.localDate <= selectedRange.end);
     const totalSpend = rangeEntries.reduce((sum, e) => sum + e.amount, 0);
-    const dailySpendingEntries = rangeEntries.filter(e => e.category === "daily_spending");
-    const needsEntries = rangeEntries.filter(e => e.category === "monthly_needs");
-    const wantsEntries = rangeEntries.filter(e => e.category === "monthly_wants");
+    const dailySpendingEntries = rangeEntries.filter((e) => e.category === "daily_spending");
+    const needsEntries = rangeEntries.filter((e) => e.category === "monthly_needs");
+    const wantsEntries = rangeEntries.filter((e) => e.category === "monthly_wants");
 
     return {
       total: totalSpend,
@@ -218,7 +211,9 @@ export default function DashboardPage() {
               disabled={availableMonths.length === 0}>
               {availableMonths.length === 0 ? <option value="">No month data</option> : null}
               {availableMonths.map((month) => (
-                <option key={month} value={month}>{month}</option>
+                <option key={month} value={month}>
+                  {month}
+                </option>
               ))}
             </select>
           </label>
@@ -248,7 +243,11 @@ export default function DashboardPage() {
                 <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(dailySpendingTotal)}</p>
                 <p className="mt-1 text-sm font-medium text-indigo-600/80">{dailySpendingEntries.length} entries</p>
                 <div className="mt-3 inline-flex items-center text-xs font-semibold text-indigo-600 group-hover:text-indigo-700">
-                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                  View Detail{" "}
+                  <IconifyIcon
+                    icon="fluent:arrow-right-16-regular"
+                    className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1"
+                  />
                 </div>
               </button>
 
@@ -263,7 +262,11 @@ export default function DashboardPage() {
                 <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(monthlyNeedsTotal)}</p>
                 <p className="mt-1 text-sm font-medium text-emerald-600/80">{monthlyNeedsEntries.length} entries</p>
                 <div className="mt-3 inline-flex items-center text-xs font-semibold text-emerald-600 group-hover:text-emerald-700">
-                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                  View Detail{" "}
+                  <IconifyIcon
+                    icon="fluent:arrow-right-16-regular"
+                    className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1"
+                  />
                 </div>
               </button>
 
@@ -278,31 +281,36 @@ export default function DashboardPage() {
                 <p className="mt-3 text-2xl font-bold text-slate-900">{formatCurrencyIDR(monthlyWantsTotal)}</p>
                 <p className="mt-1 text-sm font-medium text-rose-600/80">{monthlyWantsEntries.length} entries</p>
                 <div className="mt-3 inline-flex items-center text-xs font-semibold text-rose-600 group-hover:text-rose-700">
-                  View Detail <IconifyIcon icon="fluent:arrow-right-16-regular" className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1" />
+                  View Detail{" "}
+                  <IconifyIcon
+                    icon="fluent:arrow-right-16-regular"
+                    className="ml-1 opacity-0 transition-all group-hover:opacity-100 group-hover:translate-x-1"
+                  />
                 </div>
               </button>
             </div>
 
             <h3 className="text-lg font-bold text-slate-800 pt-2 border-slate-100">Calendar Spend</h3>
-            
+
             <div className="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden">
               <div className="grid grid-cols-8 border-b border-slate-200 bg-slate-50">
                 {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Total Weekly"].map((day, idx) => (
-                  <div key={day} className={`p-1.5 md:p-2 text-center text-[10px] md:text-xs font-semibold text-slate-500 ${idx === 7 ? 'bg-slate-100/50 border-l border-slate-200' : ''}`}>
+                  <div
+                    key={day}
+                    className={`p-1.5 md:p-2 text-center text-[10px] md:text-xs font-semibold text-slate-500 ${idx === 7 ? "bg-slate-100/50 border-l border-slate-200" : ""}`}>
                     {day}
                   </div>
                 ))}
               </div>
-              
+
               <div className="flex flex-col bg-slate-200 gap-[1px] select-none">
                 {calendarWeeks.map((week, wIdx) => (
                   <div key={wIdx} className="grid grid-cols-8 gap-[1px]">
                     {week.days.map((day) => {
                       const isSelected = selectedDay === day.date;
-                      const isInRange = selectedRange && day.isCurrentMonth
-                        ? (day.date >= selectedRange.start && day.date <= selectedRange.end)
-                        : false;
-                      
+                      const isInRange =
+                        selectedRange && day.isCurrentMonth ? day.date >= selectedRange.start && day.date <= selectedRange.end : false;
+
                       return (
                         <button
                           key={day.date}
@@ -345,29 +353,28 @@ export default function DashboardPage() {
                           }}
                           className={`
                             relative flex flex-col p-1 md:p-1.5 lg:p-2 aspect-[4/5] sm:aspect-square md:aspect-auto md:min-h-[5.5rem] focus:outline-none transition-all duration-150 group select-none
-                            ${!day.isCurrentMonth 
-                              ? "text-slate-300 bg-slate-50/30 cursor-default" 
-                              : isInRange 
-                                ? "bg-indigo-50/80 text-indigo-950 font-semibold ring-1 ring-inset ring-indigo-200/60 z-10" 
-                                : "bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            ${
+                              !day.isCurrentMonth
+                                ? "text-slate-300 bg-slate-50/30 cursor-default"
+                                : isInRange
+                                  ? "bg-indigo-50/80 text-indigo-950 font-semibold ring-1 ring-inset ring-indigo-200/60 z-10"
+                                  : "bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
                             }
                             ${isSelected ? "ring-2 ring-inset ring-indigo-600 bg-indigo-50/40 z-10" : ""}
-                          `}
-                        >
+                          `}>
                           <div className="flex justify-between items-start w-full">
-                            <span className={`text-[10px] md:text-xs lg:text-sm font-medium`}>
-                              {day.dayOfMonth}
-                            </span>
+                            <span className={`text-[10px] md:text-xs lg:text-sm font-medium`}>{day.dayOfMonth}</span>
                             {/* {day.entriesCount > 0 && day.isCurrentMonth && (
                               <span className="text-[9px] md:text-[10px] lg:text-xs font-semibold text-blue-500">
                                 {day.entriesCount}
                               </span>
                             )} */}
                           </div>
-                          
+
                           <div className="mt-auto pt-0.5 md:pt-1 w-full text-left">
                             {day.isCurrentMonth && (day.totalSpend > 0 || day.isPastDay) && (
-                              <span className={`text-[8px] md:text-[10px] lg:text-xs font-medium block line-clamp-2 md:truncate break-words leading-tight ${day.totalSpend > 0 ? "text-red-600" : "text-slate-400"}`}>
+                              <span
+                                className={`text-[8px] md:text-[10px] lg:text-xs font-medium block line-clamp-2 md:truncate break-words leading-tight ${day.totalSpend > 0 ? "text-red-600" : "text-slate-400"}`}>
                                 {formatCurrencyIDR(day.totalSpend)}
                               </span>
                             )}
@@ -377,11 +384,13 @@ export default function DashboardPage() {
                     })}
                     {/* Weekly Total Column */}
                     <div className="p-1 md:p-1.5 lg:p-2 flex flex-col justify-center items-end bg-slate-50 overflow-hidden">
-                       {week.weeklyTotal > 0 && (
-                         <span className="text-[9px] md:text-[10px] lg:text-xs font-bold text-red-600 block line-clamp-2 md:truncate break-words leading-tight w-full text-right" title={formatCurrencyIDR(week.weeklyTotal)}>
-                           {formatCurrencyIDR(week.weeklyTotal)}
-                         </span>
-                       )}
+                      {week.weeklyTotal > 0 && (
+                        <span
+                          className="text-[9px] md:text-[10px] lg:text-xs font-bold text-red-600 block line-clamp-2 md:truncate break-words leading-tight w-full text-right"
+                          title={formatCurrencyIDR(week.weeklyTotal)}>
+                          {formatCurrencyIDR(week.weeklyTotal)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -419,10 +428,11 @@ export default function DashboardPage() {
                       ? "bg-gradient-to-br from-accent/5 to-accent/10 ring-2 ring-accent/30"
                       : "bg-white ring-1 ring-slate-100 hover:ring-slate-200"
                   }`}
-                  onClick={() => setSelectedMonth(mt.month)}
-                >
+                  onClick={() => setSelectedMonth(mt.month)}>
                   {/* Accent bar */}
-                  <div className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-colors ${isSelected ? "bg-accent" : "bg-slate-200 group-hover:bg-accent/40"}`} />
+                  <div
+                    className={`absolute left-0 top-0 bottom-0 w-1 rounded-l-2xl transition-colors ${isSelected ? "bg-accent" : "bg-slate-200 group-hover:bg-accent/40"}`}
+                  />
 
                   <div className="flex items-center justify-between mb-3">
                     <p className={`text-sm font-bold tracking-wide ${isSelected ? "text-accent" : "text-slate-600"}`}>
@@ -435,9 +445,7 @@ export default function DashboardPage() {
                     )}
                   </div>
 
-                  <p className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">
-                    {formatCurrencyIDR(mt.grandTotal)}
-                  </p>
+                  <p className="text-2xl font-extrabold tracking-tight text-slate-900 mb-4">{formatCurrencyIDR(mt.grandTotal)}</p>
 
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between text-xs">
@@ -493,7 +501,9 @@ export default function DashboardPage() {
         type={categoryDialog}
         onClose={() => setCategoryDialog(null)}
         selectedMonth={selectedMonth}
-        entries={categoryDialog === "daily_spending" ? sortedDailyEntries : categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries}
+        entries={
+          categoryDialog === "daily_spending" ? sortedDailyEntries : categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries
+        }
       />
 
       {/* ── Floating Range Summation Card ─────────────────────── */}
@@ -504,8 +514,7 @@ export default function DashboardPage() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 50, scale: 0.95 }}
             transition={{ type: "spring", damping: 25, stiffness: 350 }}
-            className="fixed bottom-20 left-4 right-4 z-40 mx-auto max-w-lg rounded-2xl border border-indigo-100 bg-white/95 p-4 shadow-xl backdrop-blur-md md:bottom-24"
-          >
+            className="fixed bottom-20 left-4 right-4 z-40 mx-auto max-w-lg rounded-2xl border border-indigo-100 bg-white/95 p-4 shadow-xl backdrop-blur-md md:bottom-24">
             <div className="flex items-center justify-between">
               <div className="space-y-1">
                 <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
@@ -516,20 +525,15 @@ export default function DashboardPage() {
                   {formatDateLabel(selectedRange!.start)} – {formatDateLabel(selectedRange!.end)}
                 </p>
                 <div className="flex items-baseline gap-2">
-                  <p className="text-xl font-extrabold text-slate-900">
-                    {formatCurrencyIDR(rangeTotals.total)}
-                  </p>
-                  <span className="text-[10px] font-semibold text-slate-500">
-                    ({rangeTotals.entriesCount} entries)
-                  </span>
+                  <p className="text-xl font-extrabold text-slate-900">{formatCurrencyIDR(rangeTotals.total)}</p>
+                  <span className="text-[10px] font-semibold text-slate-500">({rangeTotals.entriesCount} entries)</span>
                 </div>
               </div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => setIsRangeDetailOpen(true)}
-                  className="flex h-9 items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 text-xs font-bold text-white transition-colors"
-                >
+                  className="flex h-9 items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 text-xs font-bold text-white transition-colors">
                   View Details
                 </button>
                 <button
@@ -539,8 +543,7 @@ export default function DashboardPage() {
                     setSelectionEnd(null);
                   }}
                   className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-                  aria-label="Clear selection"
-                >
+                  aria-label="Clear selection">
                   <IconifyIcon icon="fluent:dismiss-24-regular" className="h-5 w-5" />
                 </button>
               </div>
@@ -549,14 +552,32 @@ export default function DashboardPage() {
             {rangeTotals.total > 0 && (
               <div className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
                 <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-100">
-                  <div className="bg-indigo-500 transition-all" style={{ width: `${(rangeTotals.dailyTotal / rangeTotals.total) * 100}%` }} title={`Daily: ${formatCurrencyIDR(rangeTotals.dailyTotal)}`} />
-                  <div className="bg-emerald-500 transition-all" style={{ width: `${(rangeTotals.needsTotal / rangeTotals.total) * 100}%` }} title={`Needs: ${formatCurrencyIDR(rangeTotals.needsTotal)}`} />
-                  <div className="bg-rose-500 transition-all" style={{ width: `${(rangeTotals.wantsTotal / rangeTotals.total) * 100}%` }} title={`Wants: ${formatCurrencyIDR(rangeTotals.wantsTotal)}`} />
+                  <div
+                    className="bg-indigo-500 transition-all  "
+                    style={{ width: `${(rangeTotals.dailyTotal / rangeTotals.total) * 100}%` }}
+                    title={`Daily: ${formatCurrencyIDR(rangeTotals.dailyTotal)}`}
+                  />
+                  <div
+                    className="bg-emerald-500 transition-all "
+                    style={{ width: `${(rangeTotals.needsTotal / rangeTotals.total) * 100}%` }}
+                    title={`Needs: ${formatCurrencyIDR(rangeTotals.needsTotal)}`}
+                  />
+                  <div
+                    className="bg-rose-500 transition-all "
+                    style={{ width: `${(rangeTotals.wantsTotal / rangeTotals.total) * 100}%` }}
+                    title={`Wants: ${formatCurrencyIDR(rangeTotals.wantsTotal)}`}
+                  />
                 </div>
-                <div className="flex items-center justify-between text-[10px] text-slate-500">
-                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-indigo-500" /> Daily: {formatCurrencyIDR(rangeTotals.dailyTotal)}</span>
-                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Needs: {formatCurrencyIDR(rangeTotals.needsTotal)}</span>
-                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Wants: {formatCurrencyIDR(rangeTotals.wantsTotal)}</span>
+                <div className="flex items-center justify-between text-[12px] text-slate-500">
+                  <span className="flex items-center gap-1 font-semibold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-indigo-500 " /> Daily: {formatCurrencyIDR(rangeTotals.dailyTotal)}
+                  </span>
+                  <span className="flex items-center gap-1 font-semibold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 " /> Needs: {formatCurrencyIDR(rangeTotals.needsTotal)}
+                  </span>
+                  <span className="flex items-center gap-1 font-semibold">
+                    <span className="h-1.5 w-1.5 rounded-full bg-rose-500 " /> Wants: {formatCurrencyIDR(rangeTotals.wantsTotal)}
+                  </span>
                 </div>
               </div>
             )}
@@ -566,7 +587,10 @@ export default function DashboardPage() {
 
       {/* ── Range Detail Dialog ────────────────────────────────── */}
       {isRangeDetailOpen && rangeTotals && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-all" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-all"
+          role="dialog"
+          aria-modal="true">
           <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-900/5 drop-shadow-2xl animate-in fade-in zoom-in-95 duration-200">
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
@@ -606,13 +630,17 @@ export default function DashboardPage() {
                 <p className="text-sm text-slate-400 text-center py-4">No spending entries in this range.</p>
               ) : (
                 rangeTotals.entries.map((entry) => (
-                  <li key={entry.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3 hover:bg-slate-100 transition-colors">
+                  <li
+                    key={entry.id}
+                    className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3 hover:bg-slate-100 transition-colors">
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{entry.description}</p>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{entry.localDate}</span>
                         <span className="text-[9px] text-slate-300">•</span>
-                        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{entry.category.replace('_', ' ')}</span>
+                        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">
+                          {entry.category.replace("_", " ")}
+                        </span>
                       </div>
                     </div>
                     <p className="text-sm font-bold text-slate-700">{formatCurrencyIDR(entry.amount)}</p>
