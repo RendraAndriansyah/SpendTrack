@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Icon as IconifyIcon } from "@iconify/react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { DailyDetailDialog } from "@/components/daily-detail-dialog";
 import { CategoryDetailDialog } from "@/components/category-detail-dialog";
 import { useDashboard } from "@/lib/hooks/useDashboard";
@@ -36,6 +36,12 @@ export default function DashboardPage() {
   const [categoryDialog, setCategoryDialog] = useState<"daily_spending" | "needs" | "wants" | null>(null);
   const [selectedDay, setSelectedDay] = useState<string>("");
   const [isDayDialogOpen, setIsDayDialogOpen] = useState(false);
+
+  // Range selection states
+  const [selectionStart, setSelectionStart] = useState<string | null>(null);
+  const [selectionEnd, setSelectionEnd] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isRangeDetailOpen, setIsRangeDetailOpen] = useState(false);
 
   const calendarWeeks = useMemo(() => {
     if (!selectedMonth) return [];
@@ -137,6 +143,52 @@ export default function DashboardPage() {
     () => [...allMonthTotals].sort((a, b) => b.month.localeCompare(a.month)),
     [allMonthTotals],
   );
+
+  // Selection ranges and calculations
+  const selectedRange = useMemo(() => {
+    if (!selectionStart || !selectionEnd) return null;
+    const start = selectionStart <= selectionEnd ? selectionStart : selectionEnd;
+    const end = selectionStart <= selectionEnd ? selectionEnd : selectionStart;
+    return { start, end };
+  }, [selectionStart, selectionEnd]);
+
+  const rangeTotals = useMemo(() => {
+    if (!selectedRange || selectedRange.start === selectedRange.end) return null;
+
+    const rangeEntries = monthEntries.filter(
+      (e) => e.localDate >= selectedRange.start && e.localDate <= selectedRange.end
+    );
+    const totalSpend = rangeEntries.reduce((sum, e) => sum + e.amount, 0);
+    const dailySpendingEntries = rangeEntries.filter(e => e.category === "daily_spending");
+    const needsEntries = rangeEntries.filter(e => e.category === "monthly_needs");
+    const wantsEntries = rangeEntries.filter(e => e.category === "monthly_wants");
+
+    return {
+      total: totalSpend,
+      entriesCount: rangeEntries.length,
+      dailyTotal: dailySpendingEntries.reduce((sum, e) => sum + e.amount, 0),
+      needsTotal: needsEntries.reduce((sum, e) => sum + e.amount, 0),
+      wantsTotal: wantsEntries.reduce((sum, e) => sum + e.amount, 0),
+      entries: rangeEntries.sort((a, b) => b.localDate.localeCompare(a.localDate) || b.createdAt.localeCompare(a.createdAt)),
+    };
+  }, [selectedRange, monthEntries]);
+
+  // Global mouseup event to cancel dragging if user releases outside calendar
+  useEffect(() => {
+    const handleGlobalMouseUp = () => {
+      setIsDragging(false);
+    };
+    window.addEventListener("mouseup", handleGlobalMouseUp);
+    return () => {
+      window.removeEventListener("mouseup", handleGlobalMouseUp);
+    };
+  }, []);
+
+  const formatDateLabel = (dateStr: string): string => {
+    const [y, m, d] = dateStr.split("-").map(Number);
+    const date = new Date(y!, m! - 1, d!);
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  };
 
   return (
     <div className="space-y-4 md:space-y-6">
@@ -242,26 +294,64 @@ export default function DashboardPage() {
                 ))}
               </div>
               
-              <div className="flex flex-col bg-slate-200 gap-[1px]">
+              <div className="flex flex-col bg-slate-200 gap-[1px] select-none">
                 {calendarWeeks.map((week, wIdx) => (
                   <div key={wIdx} className="grid grid-cols-8 gap-[1px]">
                     {week.days.map((day) => {
                       const isSelected = selectedDay === day.date;
+                      const isInRange = selectedRange && day.isCurrentMonth
+                        ? (day.date >= selectedRange.start && day.date <= selectedRange.end)
+                        : false;
                       
                       return (
                         <button
                           key={day.date}
                           type="button"
-                          disabled={!day.isCurrentMonth || day.entriesCount === 0}
-                          onClick={() => {
-                            setSelectedDay(day.date);
-                            setIsDayDialogOpen(true);
+                          disabled={!day.isCurrentMonth}
+                          onMouseDown={(e) => {
+                            if (!day.isCurrentMonth) return;
+                            if (e.shiftKey && selectionStart) {
+                              setSelectionEnd(day.date);
+                            } else {
+                              setIsDragging(true);
+                              setSelectionStart(day.date);
+                              setSelectionEnd(day.date);
+                            }
+                          }}
+                          onMouseEnter={() => {
+                            if (isDragging && day.isCurrentMonth) {
+                              setSelectionEnd(day.date);
+                            }
+                          }}
+                          onMouseUp={() => {
+                            if (isDragging) {
+                              setIsDragging(false);
+                            }
+                          }}
+                          onClick={(e) => {
+                            // If a drag range selection was completed, prevent opening the single day dialog
+                            if (selectionStart && selectionEnd && selectionStart !== selectionEnd) {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              return;
+                            }
+                            if (day.entriesCount > 0) {
+                              // Reset range selection when viewing single day details
+                              setSelectionStart(null);
+                              setSelectionEnd(null);
+                              setSelectedDay(day.date);
+                              setIsDayDialogOpen(true);
+                            }
                           }}
                           className={`
-                            relative flex flex-col p-1 md:p-1.5 lg:p-2 bg-white aspect-[4/5] sm:aspect-square md:aspect-auto md:min-h-[5.5rem] focus:outline-none transition-colors group
-                            ${!day.isCurrentMonth ? "text-slate-300 bg-slate-50/30" : "text-slate-700"}
-                            ${isSelected ? "ring-2 ring-inset ring-accent bg-accent/5 z-10" : ""}
-                            ${day.entriesCount > 0 && day.isCurrentMonth ? "hover:bg-slate-50 cursor-pointer" : "cursor-default"}
+                            relative flex flex-col p-1 md:p-1.5 lg:p-2 aspect-[4/5] sm:aspect-square md:aspect-auto md:min-h-[5.5rem] focus:outline-none transition-all duration-150 group select-none
+                            ${!day.isCurrentMonth 
+                              ? "text-slate-300 bg-slate-50/30 cursor-default" 
+                              : isInRange 
+                                ? "bg-indigo-50/80 text-indigo-950 font-semibold ring-1 ring-inset ring-indigo-200/60 z-10" 
+                                : "bg-white text-slate-700 hover:bg-slate-50 cursor-pointer"
+                            }
+                            ${isSelected ? "ring-2 ring-inset ring-indigo-600 bg-indigo-50/40 z-10" : ""}
                           `}
                         >
                           <div className="flex justify-between items-start w-full">
@@ -405,6 +495,134 @@ export default function DashboardPage() {
         selectedMonth={selectedMonth}
         entries={categoryDialog === "daily_spending" ? sortedDailyEntries : categoryDialog === "needs" ? sortedNeedsEntries : sortedWantsEntries}
       />
+
+      {/* ── Floating Range Summation Card ─────────────────────── */}
+      <AnimatePresence>
+        {rangeTotals && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.95 }}
+            transition={{ type: "spring", damping: 25, stiffness: 350 }}
+            className="fixed bottom-20 left-4 right-4 z-40 mx-auto max-w-lg rounded-2xl border border-indigo-100 bg-white/95 p-4 shadow-xl backdrop-blur-md md:bottom-24"
+          >
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-indigo-600">
+                  <IconifyIcon icon="fluent:calendar-range-24-filled" className="h-3 w-3" />
+                  Selected Range
+                </span>
+                <p className="text-[10px] font-semibold text-slate-500">
+                  {formatDateLabel(selectedRange!.start)} – {formatDateLabel(selectedRange!.end)}
+                </p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-xl font-extrabold text-slate-900">
+                    {formatCurrencyIDR(rangeTotals.total)}
+                  </p>
+                  <span className="text-[10px] font-semibold text-slate-500">
+                    ({rangeTotals.entriesCount} entries)
+                  </span>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRangeDetailOpen(true)}
+                  className="flex h-9 items-center justify-center rounded-xl bg-indigo-600 hover:bg-indigo-700 px-3 text-xs font-bold text-white transition-colors"
+                >
+                  View Details
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectionStart(null);
+                    setSelectionEnd(null);
+                  }}
+                  className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+                  aria-label="Clear selection"
+                >
+                  <IconifyIcon icon="fluent:dismiss-24-regular" className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            {/* Small category breakdown bar if range total > 0 */}
+            {rangeTotals.total > 0 && (
+              <div className="mt-3 space-y-2 border-t border-slate-100 pt-2.5">
+                <div className="flex h-1.5 rounded-full overflow-hidden bg-slate-100">
+                  <div className="bg-indigo-500 transition-all" style={{ width: `${(rangeTotals.dailyTotal / rangeTotals.total) * 100}%` }} title={`Daily: ${formatCurrencyIDR(rangeTotals.dailyTotal)}`} />
+                  <div className="bg-emerald-500 transition-all" style={{ width: `${(rangeTotals.needsTotal / rangeTotals.total) * 100}%` }} title={`Needs: ${formatCurrencyIDR(rangeTotals.needsTotal)}`} />
+                  <div className="bg-rose-500 transition-all" style={{ width: `${(rangeTotals.wantsTotal / rangeTotals.total) * 100}%` }} title={`Wants: ${formatCurrencyIDR(rangeTotals.wantsTotal)}`} />
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-indigo-500" /> Daily: {formatCurrencyIDR(rangeTotals.dailyTotal)}</span>
+                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Needs: {formatCurrencyIDR(rangeTotals.needsTotal)}</span>
+                  <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-rose-500" /> Wants: {formatCurrencyIDR(rangeTotals.wantsTotal)}</span>
+                </div>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Range Detail Dialog ────────────────────────────────── */}
+      {isRangeDetailOpen && rangeTotals && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm transition-all" role="dialog" aria-modal="true">
+          <div className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl ring-1 ring-slate-900/5 drop-shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="mb-4 flex items-start justify-between gap-3">
+              <div>
+                <p className="text-lg font-bold text-slate-800">Range Spending Detail</p>
+                <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                  {formatDateLabel(selectedRange!.start)} – {formatDateLabel(selectedRange!.end)}
+                </p>
+                <p className="text-sm font-medium text-slate-500 mt-1">
+                  Total Range Spend: <span className="text-indigo-600 font-bold">{formatCurrencyIDR(rangeTotals.total)}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700 transition-colors"
+                onClick={() => setIsRangeDetailOpen(false)}>
+                <IconifyIcon icon="fluent:dismiss-24-regular" className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mb-4 grid grid-cols-3 gap-2 border-b border-slate-100 pb-4 text-center">
+              <div className="rounded-xl bg-indigo-50/50 p-2 border border-indigo-100/30">
+                <span className="text-[10px] font-bold text-indigo-600 block uppercase tracking-wider">Daily</span>
+                <span className="text-xs font-bold text-slate-800">{formatCurrencyIDR(rangeTotals.dailyTotal)}</span>
+              </div>
+              <div className="rounded-xl bg-emerald-50/50 p-2 border border-emerald-100/30">
+                <span className="text-[10px] font-bold text-emerald-600 block uppercase tracking-wider">Needs</span>
+                <span className="text-xs font-bold text-slate-800">{formatCurrencyIDR(rangeTotals.needsTotal)}</span>
+              </div>
+              <div className="rounded-xl bg-rose-50/50 p-2 border border-rose-100/30">
+                <span className="text-[10px] font-bold text-rose-600 block uppercase tracking-wider">Wants</span>
+                <span className="text-xs font-bold text-slate-800">{formatCurrencyIDR(rangeTotals.wantsTotal)}</span>
+              </div>
+            </div>
+
+            <ul className="max-h-[40vh] space-y-2 overflow-y-auto pr-1">
+              {rangeTotals.entries.length === 0 ? (
+                <p className="text-sm text-slate-400 text-center py-4">No spending entries in this range.</p>
+              ) : (
+                rangeTotals.entries.map((entry) => (
+                  <li key={entry.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-3.5 py-3 hover:bg-slate-100 transition-colors">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{entry.description}</p>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">{entry.localDate}</span>
+                        <span className="text-[9px] text-slate-300">•</span>
+                        <span className="text-[9px] font-semibold text-slate-500 uppercase tracking-wider">{entry.category.replace('_', ' ')}</span>
+                      </div>
+                    </div>
+                    <p className="text-sm font-bold text-slate-700">{formatCurrencyIDR(entry.amount)}</p>
+                  </li>
+                ))
+              )}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
